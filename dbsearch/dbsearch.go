@@ -289,38 +289,34 @@ func (s *Searcher) Do(sql string, values ...interface{}) {
 
 func (s *Searcher) Insert(table string, data map[string]interface{}) {
 	sql, values := sqler.InsertLine(table, data)
-
-	log.Printf("Insert: %s\n", sql)
-	spew.Dump(values)
-
-	_, err := s.db.Exec(sql, values...)
-
-	if err != nil {
-		log.Fatal(err)
-	}
+	s.DoCommit(sql, values)
 }
 
 func (s *Searcher) Delete(table string, data_where map[string]interface{}) {
 	sql, values := sqler.DeleteLine(table, data_where)
-
-	log.Printf("Update: %s\n", sql)
-	spew.Dump(values)
-
-	_, err := s.db.Exec(sql, values...)
-
-	if err != nil {
-		log.Fatal(err)
-	}
+	s.DoCommit(sql, values)
 }
 
 func (s *Searcher) Update(table string, data_where map[string]interface{}, data_update map[string]interface{}) {
 	sql, values := sqler.UpdateLine(table, data_update, data_where)
+	s.DoCommit(sql, values)
+}
 
-	log.Printf("Update: %s\n", sql)
+func (s *Searcher) DoCommit(sql string, values []interface{}) {
+	log.Printf("DoCommit: %s\n", sql)
 	spew.Dump(values)
 
-	_, err := s.db.Exec(sql, values...)
+	txn, err := s.db.Begin()
+	if err != nil {
+		log.Fatal(err)
+	}
 
+	_, err = txn.Exec(sql, values...)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	err = txn.Commit()
 	if err != nil {
 		log.Fatal(err)
 	}
