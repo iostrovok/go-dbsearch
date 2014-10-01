@@ -3,8 +3,8 @@ package dbsearch
 import (
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
-	"github.com/davecgh/go-spew/spew"
 	"github.com/iostrovok/go-dbsearch/dbsearch/sqler"
 	"github.com/iostrovok/go-iutils/iutils"
 	_ "github.com/lib/pq"
@@ -29,7 +29,17 @@ type AllRows struct {
 }
 
 type Searcher struct {
-	db *sql.DB
+	db  *sql.DB
+	log bool
+}
+
+func (s *Searcher) SetDebug(is_debug ...bool) {
+
+	if len(is_debug) > 0 {
+		s.log = is_debug[0]
+	} else {
+		s.log = true
+	}
 }
 
 func (s *Searcher) Ping() error {
@@ -45,18 +55,20 @@ func (s *Searcher) Ping() error {
 	return nil
 }
 
-func DBI(poolSize int, dsn string) (*Searcher, error) {
+func DBI(poolSize int, dsn string, stop_error ...bool) (*Searcher, error) {
 
 	s := new(Searcher)
 
 	db, _ := sql.Open("postgres", dsn)
 
 	if err := db.Ping(); err != nil {
-		log.Fatalf("DB Error: %s\n", err)
-	} else {
-		s.db = db
+		if len(stop_error) > 0 && stop_error[0] {
+			log.Fatalf("DB Error: %s\n", err)
+		}
+		return nil, errors.New(fmt.Sprintf("DB Error: %s\n", err))
 	}
 
+	s.db = db
 	s.db.SetMaxOpenConns(poolSize)
 
 	return s, nil
@@ -90,12 +102,14 @@ func (s *Searcher) Get(mType *AllRows, sqlLine string, values []interface{}) ([]
 
 	Out := make([]map[string]interface{}, 0)
 
-	log.Printf("dbsearch.Get: %s\n", sqlLine)
-	spew.Dump(values)
+	if s.log {
+		log.Printf("dbsearch.Get: %s\n", sqlLine)
+		log.Printf("%v\n", values)
+	}
 
 	rows, err := s.db.Query(sqlLine, values...)
 	if err != nil {
-		log.Fatal(err)
+		return Out, err
 	}
 	defer rows.Close()
 
@@ -104,11 +118,8 @@ func (s *Searcher) Get(mType *AllRows, sqlLine string, values []interface{}) ([]
 		return Out, err
 	}
 
-	//log.Println("sqlLine: " + sqlLine + "\nCOLS:")
-
 	rawResult := make([]interface{}, 0)
 	for i := 0; i < len(cols); i++ {
-		//log.Printf("search for %d => %s", i, cols[i])
 		t, find := mType.DBList[cols[i]]
 		if !find {
 			log.Fatalf("dbsearch.Get not found column: %s!", cols[i])
@@ -303,8 +314,10 @@ func (s *Searcher) Update(table string, data_where map[string]interface{}, data_
 }
 
 func (s *Searcher) DoCommit(sql string, values []interface{}) {
-	log.Printf("DoCommit: %s\n", sql)
-	spew.Dump(values)
+
+	if s.log {
+		log.Printf("DoCommit: %s\n", sql)
+	}
 
 	txn, err := s.db.Begin()
 	if err != nil {
