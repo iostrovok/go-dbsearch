@@ -4,11 +4,13 @@ import (
 	"regexp"
 	"strings"
 	"testing"
+
+	"log"
 )
 
 func TestWhere(t *testing.T) {
 
-	var test_line = "((((fias_id=$1orfias_id>=$2orfias_id<$3orfias_id<=$4ornamein($5)orfias_idilike$6orfias_idlike$7)andid<$8)orfirst_canmeisnotnull)andsecond_anmeisnull)"
+	var test_line = "((((fias_id=$1orfias_id>=$2orfias_id<$3orfias_id<=$4ornamein($5)orfias_idilike$6orfias_idlike$7)andid<$8)orfirst_canmeisnotnull)andsecond_anmeisnullandstartdate<now()andenddate>now())"
 	c := Mark("fias_id", "=", "test_eq")
 	c1 := Mark("fias_id", ">=", "test_eg")
 	c2 := Mark("fias_id", "<", "test_lt")
@@ -19,7 +21,7 @@ func TestWhere(t *testing.T) {
 	t2 := NLogic("AND").Append(t1).Append(Mark("id", "<", 100))
 	t3 := NLogic("OR").Append(t2).Append(Mark("first_canme", "IS", "NOT NULL"))
 	top := NLogic("AND").Append(t3).Append(Mark("second_anme", "IS", "NULL"))
-	sql, values := top.Comp()
+	sql, values := top.Append(Func("startdate < now()")).Append(Func("enddate > now()")).Comp()
 
 	var N = regexp.MustCompile(`\s+`)
 	st := strings.ToLower(N.ReplaceAllString(sql, ""))

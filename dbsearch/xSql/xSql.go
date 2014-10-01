@@ -26,9 +26,10 @@ var LogicList = map[string]bool{
 }
 
 type One struct {
-	Data  []interface{}
-	Field string
-	Type  string
+	Data   []interface{}
+	Field  string
+	Type   string
+	NoVals bool
 }
 
 func IN(field string, data []interface{}) *One {
@@ -49,6 +50,10 @@ func (one *One) Comp(PointIn ...int) (string, []interface{}) {
 
 	sqlLine := ""
 	values := []interface{}{}
+	if one.NoVals {
+		return one.Field, values
+	}
+
 	switch one.Type {
 	case "AND", "OR":
 		s := []string{}
@@ -120,6 +125,19 @@ func (one *One) Logic(mark string, Nexters ...*One) {
 	one.Type = mark
 }
 
+/*
+	example: where start_date > now()
+	Func("start_date", ">", "now()")
+*/
+func Func(field string) *One {
+	In := One{}
+
+	In.NoVals = true
+	In.Field = field
+
+	return &In
+}
+
 func Mark(field string, mark string, data ...interface{}) *One {
 	In := One{}
 
@@ -134,9 +152,11 @@ func Mark(field string, mark string, data ...interface{}) *One {
 
 	if mark == "IS" {
 		if iutils.AnyToString(In.Data[0]) == "NULL" {
-			In.Data = []interface{}{"NULL"}
+			In.NoVals = true
+			In.Field = field + " IS NULL "
 		} else if iutils.AnyToString(In.Data[0]) == "NOT NULL" {
-			In.Data = []interface{}{"NOT NULL"}
+			In.NoVals = true
+			In.Field = field + " IS NOT NULL "
 		} else {
 			log.Fatalf("Mark. Not defined %s. You have to use 'IS', 'NULL' or 'IS', 'NOT NULL' \n", mark)
 		}
