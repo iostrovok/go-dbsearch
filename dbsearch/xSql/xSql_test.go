@@ -1,11 +1,11 @@
 package xSql
 
 import (
+	//"github.com/davecgh/go-spew/spew"
+	"log"
 	"regexp"
 	"strings"
 	"testing"
-
-	"log"
 )
 
 func TestWhere(t *testing.T) {
@@ -27,9 +27,28 @@ func TestWhere(t *testing.T) {
 	st := strings.ToLower(N.ReplaceAllString(sql, ""))
 
 	if test_line != st {
-		t.Fatal("error xSql: sqlLine")
+		t.Fatal("error where xSql: sqlLine")
 	}
 	if len(values) != 8 {
-		t.Fatal("error xSql: values")
+		t.Fatal("error where xSql: values")
+	}
+
+	var insert_line = "(first_f,enddate,second_f,nextdate)values($1,now(),$2,interval'1day'+now())"
+	in := Insert()
+	in.Append(Mark("first_f", "=", 10)).Append(Mark("enddate", "SQL", "now()")).Append(Mark("second_f", "=", "SUPER"))
+	in.Append(Mark("nextdate", "SQL", "interval '1 day' + now()"))
+	sql, values = in.Comp()
+
+	log.Println(sql)
+	//spew.Dump(values)
+
+	st = strings.ToLower(N.ReplaceAllString(sql, ""))
+	log.Println(st)
+	log.Println(insert_line)
+	if insert_line != st {
+		t.Fatal("error insert xSql: sqlLine")
+	}
+	if len(values) != 2 {
+		t.Fatal("error insert xSql: values")
 	}
 }

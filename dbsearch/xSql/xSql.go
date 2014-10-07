@@ -8,6 +8,7 @@ import (
 )
 
 var MarkList = map[string]bool{
+	"SQL":   true,
 	"IS":    true,
 	"IN":    true,
 	"LIKE":  true,
@@ -21,8 +22,9 @@ var MarkList = map[string]bool{
 }
 
 var LogicList = map[string]bool{
-	"AND": true,
-	"OR":  true,
+	"AND":    true,
+	"OR":     true,
+	"INSERT": true,
 }
 
 type One struct {
@@ -30,6 +32,12 @@ type One struct {
 	Field  string
 	Type   string
 	NoVals bool
+}
+
+func Insert() *One {
+	one := One{}
+	one.Type = "INSERT"
+	return &one
 }
 
 func IN(field string, data []interface{}) *One {
@@ -50,6 +58,38 @@ func (one *One) Comp(PointIn ...int) (string, []interface{}) {
 
 	sqlLine := ""
 	values := []interface{}{}
+
+	if one.Type == "INSERT" {
+		if Point > 1 {
+			log.Fatalf("Comp. You can't combination INSERT into other request\n")
+		}
+		sIn := []string{}
+		sVals := []string{}
+		for _, v := range one.Data {
+			switch v.(type) {
+			case *One:
+				vals := v.(*One).Data
+				if len(vals) == 1 {
+					sIn = append(sIn, v.(*One).Field)
+					if v.(*One).Type == "SQL" {
+						sVals = append(sVals, iutils.AnyToString(vals[0]))
+					} else {
+						sVals = append(sVals, fmt.Sprintf("$%d ", Point))
+						Point++
+						values = append(values, vals...)
+					}
+				} else if len(vals) > 1 {
+					log.Fatalf("Comp. You can't INSERT multivalue params %T, %v\n", v, v)
+				}
+			default:
+				log.Printf("Comp. Not defined %T\n", v)
+				log.Fatalf("Comp. Not defined %v\n", v)
+			}
+		}
+		sql := " ( " + strings.Join(sIn, ", ") + ") VALUES (" + strings.Join(sVals, ", ") + ")"
+		return sql, values
+	}
+
 	if one.NoVals {
 		return one.Field, values
 	}
@@ -61,13 +101,13 @@ func (one *One) Comp(PointIn ...int) (string, []interface{}) {
 			switch v.(type) {
 			case *One:
 				sql, vals := v.(*One).Comp(Point)
-				Point += len(vals)
 				s = append(s, sql)
 				if len(vals) > 0 {
+					Point += len(vals)
 					values = append(values, vals...)
 				}
 			default:
-				log.Fatalf("Comp. Not defined %T\n", v)
+				log.Printf("Comp. Not defined %T\n", v)
 				log.Fatalf("Comp. Not defined %v\n", v)
 			}
 		}
