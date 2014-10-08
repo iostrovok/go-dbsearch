@@ -8,6 +8,7 @@ import (
 )
 
 var MarkList = map[string]bool{
+	"RET":   true,
 	"SQL":   true,
 	"IS":    true,
 	"IN":    true,
@@ -29,14 +30,16 @@ var LogicList = map[string]bool{
 
 type One struct {
 	Data   []interface{}
+	Table  string
 	Field  string
 	Type   string
 	NoVals bool
 }
 
-func Insert() *One {
+func Insert(table string) *One {
 	one := One{}
 	one.Type = "INSERT"
+	one.Table = table
 	return &one
 }
 
@@ -65,29 +68,38 @@ func (one *One) Comp(PointIn ...int) (string, []interface{}) {
 		}
 		sIn := []string{}
 		sVals := []string{}
+		sRet := []string{}
 		for _, v := range one.Data {
 			switch v.(type) {
 			case *One:
-				vals := v.(*One).Data
-				if len(vals) == 1 {
-					sIn = append(sIn, v.(*One).Field)
-					if v.(*One).Type == "SQL" {
-						sVals = append(sVals, iutils.AnyToString(vals[0]))
-					} else {
-						sVals = append(sVals, fmt.Sprintf("$%d ", Point))
-						Point++
-						values = append(values, vals...)
+				if v.(*One).Type == "RET" {
+					sRet = append(sRet, v.(*One).Field)
+				} else {
+					vals := v.(*One).Data
+					if len(vals) == 1 {
+						sIn = append(sIn, v.(*One).Field)
+						if v.(*One).Type == "SQL" {
+							sVals = append(sVals, iutils.AnyToString(vals[0]))
+						} else {
+							sVals = append(sVals, fmt.Sprintf("$%d ", Point))
+							Point++
+							values = append(values, vals...)
+						}
+					} else if len(vals) > 1 {
+						log.Fatalf("Comp. You can't INSERT multivalue params %T, %v\n", v, v)
 					}
-				} else if len(vals) > 1 {
-					log.Fatalf("Comp. You can't INSERT multivalue params %T, %v\n", v, v)
 				}
 			default:
 				log.Printf("Comp. Not defined %T\n", v)
 				log.Fatalf("Comp. Not defined %v\n", v)
 			}
 		}
-		sql := " ( " + strings.Join(sIn, ", ") + ") VALUES (" + strings.Join(sVals, ", ") + ")"
-		return sql, values
+		ret := ""
+		if len(sRet) > 0 {
+			ret = " RETURNING " + strings.Join(sRet, ", ")
+		}
+		sql := "  ( " + strings.Join(sIn, ", ") + ") VALUES (" + strings.Join(sVals, ", ") + ")"
+		return " INSERT INTO " + one.Table + sql + ret, values
 	}
 
 	if one.NoVals {

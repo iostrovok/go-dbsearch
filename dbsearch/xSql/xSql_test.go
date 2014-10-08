@@ -33,10 +33,13 @@ func TestWhere(t *testing.T) {
 		t.Fatal("error where xSql: values")
 	}
 
-	var insert_line = "(first_f,enddate,second_f,nextdate)values($1,now(),$2,interval'1day'+now())"
-	in := Insert()
+	var insert_line = "insertintomytable(first_f,enddate,second_f,nextdate)values($1,now(),$2,interval'1day'+now())returning*,nextdateased"
+	in := Insert("mytable")
 	in.Append(Mark("first_f", "=", 10)).Append(Mark("enddate", "SQL", "now()")).Append(Mark("second_f", "=", "SUPER"))
 	in.Append(Mark("nextdate", "SQL", "interval '1 day' + now()"))
+	in.Append(Mark("*", "RET", ""))
+	in.Append(Mark("nextdate as ED", "RET", ""))
+
 	sql, values = in.Comp()
 
 	log.Println(sql)
