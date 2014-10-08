@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/davecgh/go-spew/spew"
 	"github.com/iostrovok/go-dbsearch/dbsearch/sqler"
 	"github.com/iostrovok/go-iutils/iutils"
 	_ "github.com/lib/pq"
@@ -12,8 +13,11 @@ import (
 	"reflect"
 	"regexp"
 	"strings"
+	"sync"
 	"time"
 )
+
+var m sync.Mutex
 
 //
 type OneRow struct {
@@ -26,6 +30,7 @@ type OneRow struct {
 type AllRows struct {
 	DBList map[string]*OneRow
 	List   map[string]*OneRow
+	Done   bool
 }
 
 type Searcher struct {
@@ -202,10 +207,19 @@ func convertType(Name string, mType *AllRows, raw_in interface{}) interface{} {
 	return nil
 }
 
-func Prepare(s interface{}) *AllRows {
+func (mT *AllRows) PreInit(p interface{}) {
+	if !mT.Done {
+		m.Lock()
+		mT.iPrepare(p)
+		spew.Dump(mT)
+		m.Unlock()
+	}
+}
+
+func (aRows *AllRows) iPrepare(s interface{}) {
 	st := reflect.TypeOf(s)
 
-	aRows := AllRows{}
+	aRows.Done = true
 	aRows.List = make(map[string]*OneRow, 0)
 	aRows.DBList = make(map[string]*OneRow, 0)
 	Count := 0
@@ -231,7 +245,11 @@ func Prepare(s interface{}) *AllRows {
 		aRows.List[field.Name] = &oRow
 		aRows.DBList[dbname] = &oRow
 	}
+}
 
+func Prepare(s interface{}) *AllRows {
+	aRows := AllRows{}
+	aRows.iPrepare(s)
 	return &aRows
 }
 
