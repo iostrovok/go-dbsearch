@@ -156,11 +156,7 @@ func (s *Searcher) Get(mType *AllRows, sqlLine string, values []interface{}) ([]
 		result := map[string]interface{}{}
 		for i, raw := range rawResult {
 			// cols[i] - Column name
-			if raw == nil {
-				result[cols[i]] = nil
-			} else {
-				result[cols[i]] = convertType(cols[i], mType, raw)
-			}
+			result[cols[i]] = convertType(cols[i], mType, raw)
 		}
 
 		Out = append(Out, result)
@@ -177,6 +173,20 @@ func convertType(Name string, mType *AllRows, raw_in interface{}) interface{} {
 	t, find := mType.DBList[Name]
 	if !find {
 		log.Fatal("Not found!")
+	}
+
+	if raw_in == nil {
+		if t.IsArray {
+			switch t.Type {
+			case "text", "date", "datetime":
+				return []string{}
+			case "bigint", "int64", "int":
+				return []int{}
+			}
+			return []interface{}{}
+		} else {
+			return nil
+		}
 	}
 
 	switch t.Type {
@@ -200,10 +210,15 @@ func convertType(Name string, mType *AllRows, raw_in interface{}) interface{} {
 		}
 		return res
 	case "bigint", "int64", "int":
-		return iutils.AnyToInt(raw_in)
+		if t.IsArray {
+			return parseIntArray(raw_in)
+		} else {
+			return iutils.AnyToInt(raw_in)
+		}
 	case "date", "datetime":
 		return raw_in
 	}
+
 	return nil
 }
 
@@ -281,6 +296,10 @@ var (
 	arrayExp = regexp.MustCompile(fmt.Sprintf("((%s)(,)?)", arrayValue))
 
 	valueIndex int
+
+	noNumbers      = regexp.MustCompile(`[^0-9]+`)
+	noNumbersStart = regexp.MustCompile(`^[^0-9]+`)
+	noNumbersEnd   = regexp.MustCompile(`[^0-9]+$`)
 )
 
 // Find the index of the 'value' named expression
@@ -291,6 +310,13 @@ func init() {
 			break
 		}
 	}
+}
+
+func parseIntArray(s interface{}) []int {
+	str := strings.TrimSpace(iutils.AnyToString(s))
+	str = noNumbersStart.ReplaceAllString(str, "")
+	str = noNumbersEnd.ReplaceAllString(str, "")
+	return iutils.AnyToIntArray(noNumbers.Split(str, -1))
 }
 
 func parseArray(array string) []string {
