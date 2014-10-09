@@ -77,5 +77,14 @@ func TestWhere(t *testing.T) {
 	sql, values = insert.Comp()
 	check_result(t, sql, "INSERT INTO public.mytable ( a, b, c ) VALUES ($1, ARRAY[$2, $3, $4], '{}') RETURNING *, b as d", values, 4)
 
+	update := Update("public.mytable").Append(Mark("a", "=", 1)).Append(Array("b", "=", 1, 2, 3)).Append(Array("c", "="))
+	update.Append(Mark("*", "RET", "")).Append(Mark("b as d", "RET", ""))
+	update_where := NLogic("AND").Append(Func("startdate < now()")).Append(Func("enddate > now()"))
+	update.Where(update_where)
+	sql, values = update.Comp()
+	check_sql := "UPDATE public.mytable SET a = $1, b = ARRAY[$2, $3, $4], c = '{}' " +
+		"WHERE (startdate < now() AND enddate > now()) RETURNING *, b as d"
+	check_result(t, sql, check_sql, values, 4)
+
 	//t.Fatal("error insert xSql: text view")
 }

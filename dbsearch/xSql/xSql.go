@@ -40,6 +40,7 @@ var LogicList = map[string]bool{
 	"AND":    true,
 	"OR":     true,
 	"INSERT": true,
+	"UPDATE": true,
 }
 
 type One struct {
@@ -49,6 +50,14 @@ type One struct {
 	Type    string
 	NoVals  bool
 	IsArray bool
+	IsWhere bool
+}
+
+func Update(table string) *One {
+	one := One{}
+	one.Type = "UPDATE"
+	one.Table = table
+	return &one
 }
 
 func Insert(table string) *One {
@@ -65,6 +74,66 @@ func IN(field string, data []interface{}) *One {
 	one.Field = field
 
 	return &one
+}
+
+func (one *One) CompUpdate() (string, []interface{}) {
+	sUp := []string{}
+	sRet := []string{}
+
+	values := []interface{}{}
+	sql_where := ""
+
+	for _, v := range one.Data {
+		switch v.(type) {
+		case *One:
+			if v.(*One).IsWhere {
+				sql, vals := v.(*One).Comp()
+				if sql != "" {
+					sql_where = " WHERE " + sql
+					values = append(values, vals...)
+				}
+				break
+			}
+		}
+	}
+
+	Point := 1 + len(values)
+
+	for _, v := range one.Data {
+		switch v.(type) {
+		case *One:
+
+			if v.(*One).IsWhere {
+				continue
+			}
+
+			tp := v.(*One).Type
+
+			if tp == "RET" {
+				sRet = append(sRet, v.(*One).Field)
+				continue
+			}
+
+			if tp != "=" {
+				log.Fatalf("Comp. For update only \"=\" defined %v\n", v)
+			}
+
+			sql, vals := v.(*One).Comp(Point)
+			Point += len(vals)
+			sUp = append(sUp, sql)
+			values = append(values, vals...)
+
+		default:
+			log.Printf("Comp. Not defined %T\n", v)
+			log.Fatalf("Comp. Not defined %v\n", v)
+		}
+	}
+	ret := ""
+	if len(sRet) > 0 {
+		ret = " RETURNING " + strings.Join(sRet, ", ")
+	}
+	sql := strings.Join(sUp, ", ")
+	return " UPDATE " + one.Table + " SET " + sql + sql_where + ret, values
 }
 
 func (one *One) CompInsert() (string, []interface{}) {
@@ -135,6 +204,13 @@ func (one *One) Comp(PointIn ...int) (string, []interface{}) {
 			log.Fatalf("Comp. You can't combination INSERT into other request\n")
 		}
 		return one.CompInsert()
+	}
+
+	if one.Type == "UPDATE" {
+		if Point > 1 {
+			log.Fatalf("Comp. You can't combination INSERT into other request\n")
+		}
+		return one.CompUpdate()
 	}
 
 	if one.NoVals {
@@ -233,6 +309,12 @@ func (one *One) Logic(mark string, Nexters ...*One) {
 	one.Type = mark
 }
 
+func (one *One) Where(v *One) *One {
+	v.IsWhere = true
+	one.Data = append(one.Data, v)
+	return one
+}
+
 /*
 	example: where start_date > now()
 	Func("start_date", ">", "now()")
@@ -258,6 +340,7 @@ func Mark(field string, mark string, data ...interface{}) *One {
 	In.Data = data
 	In.Field = field
 	In.IsArray = false
+	In.IsWhere = false
 
 	if mark == "IS" {
 		if iutils.AnyToString(In.Data[0]) == "NULL" {
@@ -271,14 +354,6 @@ func Mark(field string, mark string, data ...interface{}) *One {
 		}
 	}
 
-	/*
-		if mark == "ARRAY" {
-			log.Printf("++ %s\n", reflect.TypeOf(data[0]).Kind().String())
-			if reflect.TypeOf(data[0]).Kind().String() != "slice" {
-				log.Fatalf("Mark. For using \"ARRAY\" type, need xSql.Mark(<string>, \"ARRAY\", <slice>)\n")
-			}
-		}
-	*/
 	return &In
 }
 
@@ -294,6 +369,7 @@ func Array(field string, mark string, data ...interface{}) *One {
 	In.Data = data
 	In.Field = field
 	In.IsArray = true
+	In.IsWhere = false
 
 	return &In
 }
