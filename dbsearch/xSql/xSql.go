@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/iostrovok/go-iutils/iutils"
 	"log"
+	//"reflect"
 	"strings"
 )
 
@@ -22,6 +23,19 @@ var MarkList = map[string]bool{
 	"<":     true,
 }
 
+var MarkArrayList = map[string]bool{
+	"=":  true,
+	"<>": true,
+	"<":  true,
+	">":  true,
+	"<=": true,
+	">=": true,
+	"@>": true,
+	"<@": true,
+	"&&": true,
+	"||": true,
+}
+
 var LogicList = map[string]bool{
 	"AND":    true,
 	"OR":     true,
@@ -29,11 +43,12 @@ var LogicList = map[string]bool{
 }
 
 type One struct {
-	Data   []interface{}
-	Table  string
-	Field  string
-	Type   string
-	NoVals bool
+	Data    []interface{}
+	Table   string
+	Field   string
+	Type    string
+	NoVals  bool
+	IsArray bool
 }
 
 func Insert(table string) *One {
@@ -52,6 +67,59 @@ func IN(field string, data []interface{}) *One {
 	return &one
 }
 
+func (one *One) CompInsert() (string, []interface{}) {
+	sIn := []string{}
+	sVals := []string{}
+	sRet := []string{}
+	Point := 1
+	values := []interface{}{}
+	for _, v := range one.Data {
+		switch v.(type) {
+		case *One:
+
+			tp := v.(*One).Type
+
+			if tp == "RET" {
+				sRet = append(sRet, v.(*One).Field)
+				continue
+			}
+
+			sIn = append(sIn, v.(*One).Field)
+			vals := v.(*One).Data
+
+			if v.(*One).IsArray {
+				s, v := PrepaperArray(vals, Point)
+				sVals = append(sVals, s)
+				values = append(values, v...)
+				Point += len(v)
+				continue
+			}
+
+			if len(vals) > 1 {
+				log.Fatalf("Comp. You can't INSERT multivalue params %T, %v\n", v, v)
+			}
+
+			if tp == "SQL" {
+				sVals = append(sVals, iutils.AnyToString(vals[0]))
+			} else {
+				sVals = append(sVals, fmt.Sprintf("$%d ", Point))
+				Point++
+				values = append(values, vals...)
+			}
+
+		default:
+			log.Printf("Comp. Not defined %T\n", v)
+			log.Fatalf("Comp. Not defined %v\n", v)
+		}
+	}
+	ret := ""
+	if len(sRet) > 0 {
+		ret = " RETURNING " + strings.Join(sRet, ", ")
+	}
+	sql := "  ( " + strings.Join(sIn, ", ") + ") VALUES (" + strings.Join(sVals, ", ") + ")"
+	return " INSERT INTO " + one.Table + sql + ret, values
+}
+
 func (one *One) Comp(PointIn ...int) (string, []interface{}) {
 
 	Point := 1
@@ -66,44 +134,15 @@ func (one *One) Comp(PointIn ...int) (string, []interface{}) {
 		if Point > 1 {
 			log.Fatalf("Comp. You can't combination INSERT into other request\n")
 		}
-		sIn := []string{}
-		sVals := []string{}
-		sRet := []string{}
-		for _, v := range one.Data {
-			switch v.(type) {
-			case *One:
-				if v.(*One).Type == "RET" {
-					sRet = append(sRet, v.(*One).Field)
-				} else {
-					vals := v.(*One).Data
-					if len(vals) == 1 {
-						sIn = append(sIn, v.(*One).Field)
-						if v.(*One).Type == "SQL" {
-							sVals = append(sVals, iutils.AnyToString(vals[0]))
-						} else {
-							sVals = append(sVals, fmt.Sprintf("$%d ", Point))
-							Point++
-							values = append(values, vals...)
-						}
-					} else if len(vals) > 1 {
-						log.Fatalf("Comp. You can't INSERT multivalue params %T, %v\n", v, v)
-					}
-				}
-			default:
-				log.Printf("Comp. Not defined %T\n", v)
-				log.Fatalf("Comp. Not defined %v\n", v)
-			}
-		}
-		ret := ""
-		if len(sRet) > 0 {
-			ret = " RETURNING " + strings.Join(sRet, ", ")
-		}
-		sql := "  ( " + strings.Join(sIn, ", ") + ") VALUES (" + strings.Join(sVals, ", ") + ")"
-		return " INSERT INTO " + one.Table + sql + ret, values
+		return one.CompInsert()
 	}
 
 	if one.NoVals {
 		return one.Field, values
+	}
+
+	if one.IsArray {
+		return one.CompArray(Point)
 	}
 
 	switch one.Type {
@@ -144,6 +183,23 @@ func (one *One) Comp(PointIn ...int) (string, []interface{}) {
 		Point++
 		values = append(values, one.Data[0])
 	}
+
+	return sqlLine, values
+}
+
+func (one *One) CompArray(PointIn ...int) (string, []interface{}) {
+
+	Point := 1
+	if len(PointIn) > 0 {
+		Point = PointIn[0]
+	}
+
+	if !one.IsArray {
+		log.Fatalf("CompArray. It does not have array type: %v\n", one)
+	}
+
+	sqlLine, values := PrepaperArray(one.Data, Point)
+	sqlLine = fmt.Sprintf(" %s %s %s ", one.Field, one.Type, sqlLine)
 
 	return sqlLine, values
 }
@@ -201,6 +257,7 @@ func Mark(field string, mark string, data ...interface{}) *One {
 
 	In.Data = data
 	In.Field = field
+	In.IsArray = false
 
 	if mark == "IS" {
 		if iutils.AnyToString(In.Data[0]) == "NULL" {
@@ -213,6 +270,30 @@ func Mark(field string, mark string, data ...interface{}) *One {
 			log.Fatalf("Mark. Not defined %s. You have to use 'IS', 'NULL' or 'IS', 'NOT NULL' \n", mark)
 		}
 	}
+
+	/*
+		if mark == "ARRAY" {
+			log.Printf("++ %s\n", reflect.TypeOf(data[0]).Kind().String())
+			if reflect.TypeOf(data[0]).Kind().String() != "slice" {
+				log.Fatalf("Mark. For using \"ARRAY\" type, need xSql.Mark(<string>, \"ARRAY\", <slice>)\n")
+			}
+		}
+	*/
+	return &In
+}
+
+func Array(field string, mark string, data ...interface{}) *One {
+	In := One{}
+
+	if _, find := MarkArrayList[mark]; find {
+		In.Type = mark
+	} else {
+		log.Fatalf("Array. Not defined %s\n", mark)
+	}
+
+	In.Data = data
+	In.Field = field
+	In.IsArray = true
 
 	return &In
 }
