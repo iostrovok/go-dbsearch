@@ -9,8 +9,8 @@ import (
 )
 
 func check_result(t *testing.T, sql1 string, sql2 string, values []interface{}, count int) {
-	log.Printf("%s\n", sql1)
-	log.Printf("%s\n", sql2)
+	log.Printf("SQL1: %s\n", sql1)
+	log.Printf("SQL2: %s\n", sql2)
 	log.Printf("%v\n", values)
 
 	var N = regexp.MustCompile(`\s+`)
@@ -71,11 +71,18 @@ func TestWhere(t *testing.T) {
 		check_result(t, sql, "f "+m+" ARRAY[ $1, $2, $3 ]", values, 3)
 	}
 
+	for _, m := range array_marks {
+		sql, values = TArray("int", "f", m, 1, 2).Comp()
+		check_result(t, sql, "f "+m+" ARRAY[ $1, $2 ]::int[]", values, 2)
+	}
+
 	/* test insert */
 	insert := Insert("public.mytable").Append(Mark("a", "=", 1)).Append(Array("b", "=", 1, 2, 3)).Append(Array("c", "="))
+	insert.Append(TArray("text", "i", "=", "w"))
 	insert.Append(Mark("*", "RET", "")).Append(Mark("b as d", "RET", ""))
 	sql, values = insert.Comp()
-	check_result(t, sql, "INSERT INTO public.mytable ( a, b, c ) VALUES ($1, ARRAY[$2, $3, $4], '{}') RETURNING *, b as d", values, 4)
+	check_result(t, sql, "INSERT INTO public.mytable ( a, b, c, i ) "+
+		"VALUES ($1, ARRAY[$2, $3, $4], '{}', ARRAY[$5]::text[]) RETURNING *, b as d", values, 5)
 
 	update := Update("public.mytable").Append(Mark("a", "=", 1)).Append(Array("b", "=", 1, 2, 3)).Append(Array("c", "="))
 	update.Append(Mark("*", "RET", "")).Append(Mark("b as d", "RET", ""))

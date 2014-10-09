@@ -44,13 +44,14 @@ var LogicList = map[string]bool{
 }
 
 type One struct {
-	Data    []interface{}
-	Table   string
-	Field   string
-	Type    string
-	NoVals  bool
-	IsArray bool
-	IsWhere bool
+	Data      []interface{}
+	Table     string
+	Field     string
+	Type      string
+	TypeArray string
+	NoVals    bool
+	IsArray   bool
+	IsWhere   bool
 }
 
 func Update(table string) *One {
@@ -157,7 +158,8 @@ func (one *One) CompInsert() (string, []interface{}) {
 			vals := v.(*One).Data
 
 			if v.(*One).IsArray {
-				s, v := PrepaperArray(vals, Point)
+				//s, v := v.(*One).CompArray()
+				s, v := PrepaperArray(v.(*One).TypeArray, vals, Point)
 				sVals = append(sVals, s)
 				values = append(values, v...)
 				Point += len(v)
@@ -274,7 +276,7 @@ func (one *One) CompArray(PointIn ...int) (string, []interface{}) {
 		log.Fatalf("CompArray. It does not have array type: %v\n", one)
 	}
 
-	sqlLine, values := PrepaperArray(one.Data, Point)
+	sqlLine, values := PrepaperArray(one.TypeArray, one.Data, Point)
 	sqlLine = fmt.Sprintf(" %s %s %s ", one.Field, one.Type, sqlLine)
 
 	return sqlLine, values
@@ -355,6 +357,12 @@ func Mark(field string, mark string, data ...interface{}) *One {
 	}
 
 	return &In
+}
+
+func TArray(type_array string, field string, mark string, data ...interface{}) *One {
+	In := Array(field, mark, data...)
+	In.TypeArray = "::" + type_array + "[]"
+	return In
 }
 
 func Array(field string, mark string, data ...interface{}) *One {

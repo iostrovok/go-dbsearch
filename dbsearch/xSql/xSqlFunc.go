@@ -5,10 +5,10 @@ import (
 	"strings"
 )
 
-func PrepaperArray(val []interface{}, start_point int) (string, []interface{}) {
+func PrepaperArray(TypeArray string, val []interface{}, start_point int) (string, []interface{}) {
 
 	if len(val) == 0 {
-		return " '{}' ", []interface{}{}
+		return " '{}'" + TypeArray + " ", []interface{}{}
 	}
 
 	line := []string{}
@@ -19,5 +19,5 @@ func PrepaperArray(val []interface{}, start_point int) (string, []interface{}) {
 		start_point++
 	}
 
-	return " ARRAY[ " + strings.Join(line, ", ") + " ] ", values
+	return "ARRAY[ " + strings.Join(line, ", ") + " ]" + TypeArray, values
 }
