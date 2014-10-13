@@ -4,36 +4,26 @@ import (
 	"fmt"
 	"github.com/iostrovok/go-iutils/iutils"
 	"log"
-	//"reflect"
 	"strings"
 )
 
 var MarkList = map[string]bool{
-	"RET":   true,
-	"SQL":   true,
-	"IS":    true,
-	"IN":    true,
-	"LIKE":  true,
-	"ILIKE": true,
-	"=":     true,
-	">=":    true,
+	"&&":    true,
+	"<":     true,
 	"<=":    true,
 	"<>":    true,
+	"<@":    true,
+	"=":     true,
 	">":     true,
-	"<":     true,
-}
-
-var MarkArrayList = map[string]bool{
-	"=":  true,
-	"<>": true,
-	"<":  true,
-	">":  true,
-	"<=": true,
-	">=": true,
-	"@>": true,
-	"<@": true,
-	"&&": true,
-	"||": true,
+	">=":    true,
+	"@>":    true,
+	"ILIKE": true,
+	"IN":    true,
+	"IS":    true,
+	"LIKE":  true,
+	"RET":   true,
+	"SQL":   true,
+	"||":    true,
 }
 
 var LogicList = map[string]bool{
@@ -44,26 +34,24 @@ var LogicList = map[string]bool{
 }
 
 type One struct {
-	Data      []interface{}
-	Table     string
-	Field     string
-	Type      string
-	TypeArray string
-	NoVals    bool
-	IsArray   bool
-	IsWhere   bool
+	Data     []interface{}
+	Table    string
+	Field    string
+	Mark     string
+	AddParam string
+	Type     string // NoVals Array Where JSON
 }
 
 func Update(table string) *One {
 	one := One{}
-	one.Type = "UPDATE"
+	one.Mark = "UPDATE"
 	one.Table = table
 	return &one
 }
 
 func Insert(table string) *One {
 	one := One{}
-	one.Type = "INSERT"
+	one.Mark = "INSERT"
 	one.Table = table
 	return &one
 }
@@ -71,7 +59,7 @@ func Insert(table string) *One {
 func IN(field string, data []interface{}) *One {
 	one := One{}
 	one.Data = data
-	one.Type = "IN"
+	one.Mark = "IN"
 	one.Field = field
 
 	return &one
@@ -87,7 +75,7 @@ func (one *One) CompUpdate() (string, []interface{}) {
 	for _, v := range one.Data {
 		switch v.(type) {
 		case *One:
-			if v.(*One).IsWhere {
+			if v.(*One).Type == "Where" {
 				sql, vals := v.(*One).Comp()
 				if sql != "" {
 					sql_where = " WHERE " + sql
@@ -103,12 +91,13 @@ func (one *One) CompUpdate() (string, []interface{}) {
 	for _, v := range one.Data {
 		switch v.(type) {
 		case *One:
+			log.Println("CompUpdate. v.(*One).Type: " + v.(*One).Type)
 
-			if v.(*One).IsWhere {
+			if v.(*One).Type == "Where" {
 				continue
 			}
 
-			tp := v.(*One).Type
+			tp := v.(*One).Mark
 
 			if tp == "RET" {
 				sRet = append(sRet, v.(*One).Field)
@@ -146,8 +135,9 @@ func (one *One) CompInsert() (string, []interface{}) {
 	for _, v := range one.Data {
 		switch v.(type) {
 		case *One:
+			log.Println("CompInsert. v.(*One).Type: " + v.(*One).Type)
 
-			tp := v.(*One).Type
+			tp := v.(*One).Mark
 
 			if tp == "RET" {
 				sRet = append(sRet, v.(*One).Field)
@@ -157,9 +147,8 @@ func (one *One) CompInsert() (string, []interface{}) {
 			sIn = append(sIn, v.(*One).Field)
 			vals := v.(*One).Data
 
-			if v.(*One).IsArray {
-				//s, v := v.(*One).CompArray()
-				s, v := PrepaperArray(v.(*One).TypeArray, vals, Point)
+			if v.(*One).Type == "Array" {
+				s, v := PrepareArray(v.(*One).AddParam, vals, Point)
 				sVals = append(sVals, s)
 				values = append(values, v...)
 				Point += len(v)
@@ -168,6 +157,10 @@ func (one *One) CompInsert() (string, []interface{}) {
 
 			if len(vals) > 1 {
 				log.Fatalf("Comp. You can't INSERT multivalue params %T, %v\n", v, v)
+			}
+
+			if v.(*One).Type == "JSON" {
+				vals = PrepareJsonVals(vals)
 			}
 
 			if tp == "SQL" {
@@ -197,33 +190,35 @@ func (one *One) Comp(PointIn ...int) (string, []interface{}) {
 	if len(PointIn) > 0 {
 		Point = PointIn[0]
 	}
+	log.Println("Comp. v.(*One).Type: " + one.Type)
 
 	sqlLine := ""
 	values := []interface{}{}
 
-	if one.Type == "INSERT" {
+	if one.Mark == "INSERT" {
 		if Point > 1 {
 			log.Fatalf("Comp. You can't combination INSERT into other request\n")
 		}
 		return one.CompInsert()
 	}
 
-	if one.Type == "UPDATE" {
+	if one.Mark == "UPDATE" {
 		if Point > 1 {
 			log.Fatalf("Comp. You can't combination INSERT into other request\n")
 		}
 		return one.CompUpdate()
 	}
 
-	if one.NoVals {
-		return one.Field, values
-	}
-
-	if one.IsArray {
-		return one.CompArray(Point)
-	}
-
 	switch one.Type {
+	case "NoVals":
+		return one.Field, values
+	case "Array":
+		return one.CompArray(Point)
+	case "JSON":
+		one.Data = PrepareJsonVals(one.Data)
+	}
+
+	switch one.Mark {
 	case "AND", "OR":
 		s := []string{}
 		for _, v := range one.Data {
@@ -240,7 +235,7 @@ func (one *One) Comp(PointIn ...int) (string, []interface{}) {
 				log.Fatalf("Comp. Not defined %v\n", v)
 			}
 		}
-		sqlLine = "( " + strings.Join(s, " "+one.Type+" ") + ") "
+		sqlLine = "( " + strings.Join(s, " "+one.Mark+" ") + ") "
 	case "IN":
 		s := []string{}
 		i := len(one.Data)
@@ -257,7 +252,7 @@ func (one *One) Comp(PointIn ...int) (string, []interface{}) {
 	case "IS":
 		sqlLine = one.Field + " IS " + iutils.AnyToString(one.Data[0])
 	default:
-		sqlLine = fmt.Sprintf(" %s %s $%d ", one.Field, one.Type, Point)
+		sqlLine = fmt.Sprintf(" %s %s $%d ", one.Field, one.Mark, Point)
 		Point++
 		values = append(values, one.Data[0])
 	}
@@ -265,26 +260,9 @@ func (one *One) Comp(PointIn ...int) (string, []interface{}) {
 	return sqlLine, values
 }
 
-func (one *One) CompArray(PointIn ...int) (string, []interface{}) {
-
-	Point := 1
-	if len(PointIn) > 0 {
-		Point = PointIn[0]
-	}
-
-	if !one.IsArray {
-		log.Fatalf("CompArray. It does not have array type: %v\n", one)
-	}
-
-	sqlLine, values := PrepaperArray(one.TypeArray, one.Data, Point)
-	sqlLine = fmt.Sprintf(" %s %s %s ", one.Field, one.Type, sqlLine)
-
-	return sqlLine, values
-}
-
 func (one *One) Append(Nexters ...*One) *One {
-	if _, find := LogicList[one.Type]; !find {
-		log.Fatalf("Append. Bad type for append %s\n", one.Type)
+	if _, find := LogicList[one.Mark]; !find {
+		log.Fatalf("Append. Bad type for append %s\n", one.Mark)
 	}
 	for _, v := range Nexters {
 		one.Data = append(one.Data, v)
@@ -308,11 +286,11 @@ func (one *One) Logic(mark string, Nexters ...*One) {
 	for _, v := range Nexters {
 		one.Data = append(one.Data, v)
 	}
-	one.Type = mark
+	one.Mark = mark
 }
 
 func (one *One) Where(v *One) *One {
-	v.IsWhere = true
+	v.Type = "Where"
 	one.Data = append(one.Data, v)
 	return one
 }
@@ -324,7 +302,7 @@ func (one *One) Where(v *One) *One {
 func Func(field string) *One {
 	In := One{}
 
-	In.NoVals = true
+	In.Type = "NoVals"
 	In.Field = field
 
 	return &In
@@ -334,50 +312,26 @@ func Mark(field string, mark string, data ...interface{}) *One {
 	In := One{}
 
 	if _, find := MarkList[mark]; find {
-		In.Type = mark
+		In.Mark = mark
 	} else {
 		log.Fatalf("Mark. Not defined %s\n", mark)
 	}
 
 	In.Data = data
 	In.Field = field
-	In.IsArray = false
-	In.IsWhere = false
+	In.Type = ""
 
 	if mark == "IS" {
 		if iutils.AnyToString(In.Data[0]) == "NULL" {
-			In.NoVals = true
+			In.Type = "NoVals"
 			In.Field = field + " IS NULL "
 		} else if iutils.AnyToString(In.Data[0]) == "NOT NULL" {
-			In.NoVals = true
+			In.Type = "NoVals"
 			In.Field = field + " IS NOT NULL "
 		} else {
 			log.Fatalf("Mark. Not defined %s. You have to use 'IS', 'NULL' or 'IS', 'NOT NULL' \n", mark)
 		}
 	}
-
-	return &In
-}
-
-func TArray(type_array string, field string, mark string, data ...interface{}) *One {
-	In := Array(field, mark, data...)
-	In.TypeArray = "::" + type_array + "[]"
-	return In
-}
-
-func Array(field string, mark string, data ...interface{}) *One {
-	In := One{}
-
-	if _, find := MarkArrayList[mark]; find {
-		In.Type = mark
-	} else {
-		log.Fatalf("Array. Not defined %s\n", mark)
-	}
-
-	In.Data = data
-	In.Field = field
-	In.IsArray = true
-	In.IsWhere = false
 
 	return &In
 }

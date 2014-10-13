@@ -85,11 +85,16 @@ func (s *Searcher) GetCount(sqlLine string, values []interface{}) (int, error) {
 	return count, err
 }
 
-func (s *Searcher) GetOne(mType *AllRows, sqlLine string, values []interface{}) (map[string]interface{}, error) {
+func (s *Searcher) GetOne(mType *AllRows, sqlLine string, values ...[]interface{}) (map[string]interface{}, error) {
 
 	sqlLine += " LIMIT 1 OFFSET 0 "
 
-	list, err := s.Get(mType, sqlLine, values)
+	value := []interface{}{}
+	if len(values) > 0 {
+		value = values[0]
+	}
+
+	list, err := s.Get(mType, sqlLine, value)
 	empty := map[string]interface{}{}
 
 	if err != nil {
@@ -197,7 +202,7 @@ func convertType(Name string, mType *AllRows, raw_in interface{}) interface{} {
 		} else {
 			return string(raw)
 		}
-	case "json":
+	case "json", "jsonb":
 		line := iutils.AnyToString(raw_in)
 		if line == "" {
 			line = "{}"
