@@ -91,8 +91,6 @@ func (one *One) CompUpdate() (string, []interface{}) {
 	for _, v := range one.Data {
 		switch v.(type) {
 		case *One:
-			log.Println("CompUpdate. v.(*One).Type: " + v.(*One).Type)
-
 			if v.(*One).Type == "Where" {
 				continue
 			}
@@ -114,8 +112,7 @@ func (one *One) CompUpdate() (string, []interface{}) {
 			values = append(values, vals...)
 
 		default:
-			log.Printf("Comp. Not defined %T\n", v)
-			log.Fatalf("Comp. Not defined %v\n", v)
+			log.Fatalf("Comp. Not defined %T, %v\n", v, v)
 		}
 	}
 	ret := ""
@@ -135,7 +132,6 @@ func (one *One) CompInsert() (string, []interface{}) {
 	for _, v := range one.Data {
 		switch v.(type) {
 		case *One:
-			log.Println("CompInsert. v.(*One).Type: " + v.(*One).Type)
 
 			tp := v.(*One).Mark
 
@@ -172,8 +168,7 @@ func (one *One) CompInsert() (string, []interface{}) {
 			}
 
 		default:
-			log.Printf("Comp. Not defined %T\n", v)
-			log.Fatalf("Comp. Not defined %v\n", v)
+			log.Fatalf("Comp. Not defined %T, %v\n", v, v)
 		}
 	}
 	ret := ""
@@ -190,7 +185,6 @@ func (one *One) Comp(PointIn ...int) (string, []interface{}) {
 	if len(PointIn) > 0 {
 		Point = PointIn[0]
 	}
-	log.Println("Comp. v.(*One).Type: " + one.Type)
 
 	sqlLine := ""
 	values := []interface{}{}
@@ -231,8 +225,7 @@ func (one *One) Comp(PointIn ...int) (string, []interface{}) {
 					values = append(values, vals...)
 				}
 			default:
-				log.Printf("Comp. Not defined %T\n", v)
-				log.Fatalf("Comp. Not defined %v\n", v)
+				log.Fatalf("Comp. Not defined %T, %v\n", v, v)
 			}
 		}
 		sqlLine = "( " + strings.Join(s, " "+one.Mark+" ") + ") "
