@@ -161,6 +161,10 @@ func (s *Searcher) Get(mType *AllRows, sqlLine string, values []interface{}) ([]
 		result := map[string]interface{}{}
 		for i, raw := range rawResult {
 			// cols[i] - Column name
+			if s.log {
+				log.Printf("parseArray. %s: %s\n", cols[i], raw)
+			}
+
 			result[cols[i]] = convertType(cols[i], mType, raw)
 		}
 
@@ -279,43 +283,18 @@ func (self *Searcher) GetRowsCount(table string) (int, error) {
 
 /*
 *************************** ARRAY PARSER START ******************************
-    For more infomation visit page https://gist.github.com/adharris/4163702
-*/
+ */
 
 // construct a regexp to extract values:
 var (
-	// unquoted array values must not contain: (" , \ { } whitespace NULL)
-	// and must be at least one char
-	unquotedChar  = `[^",\\{}\s(NULL)]`
-	unquotedValue = fmt.Sprintf("(%s)+", unquotedChar)
-
-	// quoted array values are surrounded by double quotes, can be any
-	// character except " or \, which must be backslash escaped:
-	quotedChar  = `[^"\\]|\\"|\\\\`
-	quotedValue = fmt.Sprintf("\"(%s)*\"", quotedChar)
-
-	// an array value may be either quoted or unquoted:
-	arrayValue = fmt.Sprintf("(?P<value>(%s|%s))", unquotedValue, quotedValue)
-
-	// Array values are separated with a comma IF there is more than one value:
-	arrayExp = regexp.MustCompile(fmt.Sprintf("((%s)(,)?)", arrayValue))
-
-	valueIndex int
+	unquotedRe  = regexp.MustCompile(`([^",\\{}\s]|NULL)+,`)
+	_arrayValue = fmt.Sprintf("\"(%s)+\",", `[^"\\]|\\"|\\\\`)
+	quotedRe    = regexp.MustCompile(_arrayValue)
 
 	noNumbers      = regexp.MustCompile(`[^0-9]+`)
 	noNumbersStart = regexp.MustCompile(`^[^0-9]+`)
 	noNumbersEnd   = regexp.MustCompile(`[^0-9]+$`)
 )
-
-// Find the index of the 'value' named expression
-func init() {
-	for i, subexp := range arrayExp.SubexpNames() {
-		if subexp == "value" {
-			valueIndex = i
-			break
-		}
-	}
-}
 
 func parseIntArray(s interface{}) []int {
 	str := strings.TrimSpace(iutils.AnyToString(s))
@@ -324,16 +303,44 @@ func parseIntArray(s interface{}) []int {
 	return iutils.AnyToIntArray(noNumbers.Split(str, -1))
 }
 
-func parseArray(array string) []string {
-	results := make([]string, 0)
-	matches := arrayExp.FindAllStringSubmatch(array, -1)
-	for _, match := range matches {
-		s := match[valueIndex]
-		// the string _might_ be wrapped in quotes, so trim them:
-		s = strings.Trim(s, "\"")
-		results = append(results, s)
+func parseArray(line string) []string {
+
+	out := []string{}
+	if line == "{}" {
+		return out
 	}
-	return results
+
+	if len(line)-1 != strings.LastIndex(line, "}") || strings.Index(line, "{") != 0 {
+		return out
+	}
+
+	/* Removes lead & last {} and adds "," to end of string */
+	line = line[0:]
+	line = line[:len(line)-1] + ","
+
+	for len(line) > 0 {
+		s := ""
+		if strings.Index(line, `"`) != 0 {
+			s = unquotedRe.FindString(line)
+			line = line[strings.Index(line, ",")+1:]
+			s = strings.TrimSuffix(s, ",")
+
+			/* counvert NULL to empty string6 however we need nil string */
+			if s == "NULL" {
+				s = ""
+			}
+		} else {
+			s = quotedRe.FindString(line)
+			line = line[len(s):]
+			s = strings.TrimPrefix(s, "\"")
+			s = strings.TrimSuffix(s, "\",")
+			s = strings.Join(strings.Split(s, "\\\\"), "\\")
+			s = strings.Join(strings.Split(s, "\\\""), "\"")
+		}
+		out = append(out, s)
+	}
+
+	return out
 }
 
 /*
