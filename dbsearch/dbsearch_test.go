@@ -48,5 +48,23 @@ func Test_PreInit(t *testing.T) {
 		log.Printf("SUCCESS Need: %q GET result: %q\n", text_array[i], text_list[i])
 	}
 
+	text_array2 := []string{
+		`Соединенное Королевство Великобритании и Северной Ирландии`,
+	}
+
+	text_line2 := "{\"Соединенное Королевство Великобритании и Северной Ирландии\"}"
+	text_list2 := parseArray(text_line2)
+	log.Printf("%s\n", text_line2)
+
+	for i := range text_array2 {
+		if text_array2[i] != text_list2[i] {
+			log.Printf("Need: %s GET result: %s\n", text_array2[i], text_list2[i])
+			log.Printf("Need: %q GET result: %q\n", text_array2[i], text_list2[i])
+			t.Fatal("error parseArray")
+		}
+		log.Printf("SUCCESS Need: %s GET result: %s\n", text_array2[i], text_list2[i])
+		log.Printf("SUCCESS Need: %q GET result: %q\n", text_array2[i], text_list2[i])
+	}
+
 	//t.Fatal("error test")
 }
