@@ -331,7 +331,7 @@ func parseArray(line string) []string {
 			}
 		} else {
 			s = quotedRe.FindString(line)
-			line = line[len(s):]
+			line = strings.TrimPrefix(line, s)
 			s = strings.TrimPrefix(s, "\"")
 			s = strings.TrimSuffix(s, "\",")
 			s = strings.Join(strings.Split(s, "\\\\"), "\\")
