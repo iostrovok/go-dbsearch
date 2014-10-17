@@ -315,8 +315,8 @@ func parseArray(line string) []string {
 	}
 
 	/* Removes lead & last {} and adds "," to end of string */
-	line = line[0:]
-	line = line[:len(line)-1] + ","
+	line = strings.TrimPrefix(line, "{")
+	line = strings.TrimSuffix(line, "}") + ","
 
 	for len(line) > 0 {
 		s := ""
