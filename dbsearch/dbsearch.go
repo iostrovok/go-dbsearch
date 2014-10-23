@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/davecgh/go-spew/spew"
 	"github.com/iostrovok/go-dbsearch/dbsearch/sqler"
 	"github.com/iostrovok/go-iutils/iutils"
 	_ "github.com/lib/pq"
@@ -15,6 +14,7 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"unicode"
 )
 
 var m sync.Mutex
@@ -231,13 +231,164 @@ func convertType(Name string, mType *AllRows, raw_in interface{}) interface{} {
 	return nil
 }
 
-func (mT *AllRows) PreInit(p interface{}) {
-	if !mT.Done {
-		m.Lock()
-		mT.iPrepare(p)
-		spew.Dump(mT)
-		m.Unlock()
+func (aRows *AllRows) TabInit(s *Searcher, tab string) {
+
+	f := func(c rune) bool {
+		return string(c) == "."
+
+		//return !unicode.IsLetter(c) && !unicode.IsNumber(c)
 	}
+	//fmt.Printf("Fields are: %q", strings.FieldsFunc("  foo1;bar2,baz3...", f))
+
+	parts := strings.FieldsFunc(strings.ToLower(tab), f)
+	table := parts[0]
+	schema := "public"
+
+	log.Printf("TabInit parts: %v\n", parts)
+
+	if len(parts) == 2 {
+		table = parts[1]
+		schema = parts[0]
+	}
+
+	//sql := " SELECT column_name, column_default, is_nullable, data_type " +
+	//" FROM information_schema.columns WHERE table_schema = $1 AND table_name = $2"
+	sql := " SELECT column_name, column_default, is_nullable, data_type, character_maximum_length, udt_name " +
+		" FROM information_schema.columns WHERE table_schema = $1 AND table_name = $2"
+
+	log.Printf("TabInit %s ===> %s ===> %s\n", sql, schema, table)
+
+	rows, err := s.db.Query(sql, schema, table)
+	if err != nil {
+		log.Printf("Error TabInit '%s' for [ %s, %s]\n", sql, schema, table)
+		log.Fatalln(err)
+	}
+	defer rows.Close()
+
+	check := false
+	for rows.Next() {
+		check = true
+
+		var column_name interface{}
+		var column_default interface{}
+		var is_nullable interface{}
+		var data_type interface{}
+		var character_maximum_length interface{}
+		var udt_name interface{}
+
+		err := rows.Scan(&column_name, &column_default, &is_nullable, &data_type, &character_maximum_length, &udt_name)
+		if err != nil {
+			log.Printf("Error TabInit rows.Scan\n")
+			log.Fatalln(err)
+		}
+
+		field := _field_name(iutils.AnyToString(column_name))
+
+		oRow := OneRow{
+			Name:    field,
+			DBName:  iutils.AnyToString(column_name),
+			Type:    _field_type(iutils.AnyToString(data_type), iutils.AnyToString(udt_name)),
+			IsArray: false,
+		}
+		if iutils.AnyToString(data_type) == "ARRAY" {
+			oRow.IsArray = true
+		}
+		aRows.List[field] = &oRow
+		aRows.DBList[iutils.AnyToString(column_name)] = &oRow
+	}
+
+	if !check {
+		log.Fatalf("Not found table %s\n", tab)
+	}
+}
+
+func _field_name(column_name string) string {
+	parts := strings.Split(strings.ToLower(column_name), "_")
+	out := ""
+	for _, v := range parts {
+		if v != "" {
+			a := []rune(v)
+			a[0] = unicode.ToUpper(a[0])
+			out += string(a)
+		}
+	}
+
+	return out
+}
+
+// construct a regexp to extract values:
+var (
+	text_varchar  = regexp.MustCompile(`^text|varchar|char`)
+	json_varchar  = regexp.MustCompile(`^json|jsonb`)
+	time_varchar  = regexp.MustCompile(`^time|timetz|timestamp|timestamptz|date`)
+	float_varchar = regexp.MustCompile(`^money|numeric|real|decimal|float4`)
+	int_varchar   = regexp.MustCompile(`^bigint|bigserial|int|serial|smallint|smallserial`)
+)
+
+func _field_type(data_type string, udt_name string) string {
+	out := ""
+
+	if data_type == "ARRAY" {
+		data_type = strings.TrimPrefix(udt_name, "_")
+	}
+
+	data_type = strings.ToLower(data_type)
+
+	if text_varchar.MatchString(data_type) {
+		return "text"
+	}
+
+	if int_varchar.MatchString(data_type) {
+		return "int"
+	}
+
+	if float_varchar.MatchString(data_type) {
+		return "float"
+	}
+
+	if json_varchar.MatchString(data_type) {
+		return "json"
+	}
+
+	if time_varchar.MatchString(data_type) {
+		return "datetime"
+	}
+
+	/* ===> Don't support  now  */
+	/*
+	   "bit", "bool", "boolean", "box", "bytea", "cidr", "circle", "inet", "interval", "line",
+	   "lseg", "macaddr", "path", "point", "polygon", "tsquery", "tsvector", "txid_snapshot",
+	   "uuid", "varbit", "xml",
+	*/
+	/* <=== Don't support  now  */
+
+	log.Fatalf("The type '%s' don't support now\n", data_type)
+
+	return out
+}
+
+func (mT *AllRows) PreInitDB(s *Searcher, table string, p ...interface{}) {
+
+	if mT.Done {
+		return
+	}
+
+	mT.DBList = map[string]*OneRow{}
+	mT.List = map[string]*OneRow{}
+	mT.TabInit(s, table)
+
+	if len(p) == 1 {
+		mT.PreInit(p[0])
+	}
+}
+
+func (mT *AllRows) PreInit(p interface{}) {
+	if mT.Done {
+		return
+	}
+	m.Lock()
+	mT.iPrepare(p)
+	m.Unlock()
 }
 
 func (aRows *AllRows) iPrepare(s interface{}) {
