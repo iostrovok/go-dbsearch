@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/davecgh/go-spew/spew"
 	"github.com/iostrovok/go-dbsearch/dbsearch/sqler"
 	"github.com/iostrovok/go-iutils/iutils"
 	_ "github.com/lib/pq"
@@ -235,7 +234,6 @@ func (mT *AllRows) PreInit(p interface{}) {
 	if !mT.Done {
 		m.Lock()
 		mT.iPrepare(p)
-		spew.Dump(mT)
 		m.Unlock()
 	}
 }
