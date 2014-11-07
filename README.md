@@ -38,7 +38,8 @@ sql is
 ```sql
 	SELECT * FROM public.mytable WHERE (a = $1 AND b = $2 AND c = $3 AND d = $4)
 ```	
-	values is 
+values is 
+
 	[ 1, 2, 3, "cat" ]
 
 #### Example OR
@@ -56,7 +57,8 @@ sql is
 ```sql
 	SELECT * FROM public.mytable WHERE (a = $1 OR b = $2 OR c = $3 OR d = $4)
 ```	
-	values is 
+values is 
+
 	[ 1, 2, 3, "cat" ]
 
 ### Combination "AND" and "OR"
@@ -84,6 +86,7 @@ sql_full is
 	WHERE (group ILIKE '%beatles%' AND (f_name = $1 OR f_name = $2) AND (l_name = $3 OR l_name = $4))
 ```
 values_1, values_2 are
+
 	[ "Paul", "John", "McCartney", "Lennon" ]
 
 
