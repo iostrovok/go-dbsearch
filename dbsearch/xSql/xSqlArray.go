@@ -32,7 +32,7 @@ func (one *One) CompArray(PointIn ...int) (string, []interface{}) {
 	}
 
 	sqlLine, values := PrepareArray(one.AddParam, one.Data, Point)
-	sqlLine = fmt.Sprintf(" %s %s %s ", one.Field, one.Mark, sqlLine)
+	sqlLine = fmt.Sprintf(" %s %s %s ", one.Field, one.Marker, sqlLine)
 
 	return sqlLine, values
 }
@@ -54,17 +54,27 @@ func PrepareArray(TypeArray string, val []interface{}, start_point int) (string,
 	return "ARRAY[ " + strings.Join(line, ", ") + " ]" + TypeArray, values
 }
 
+func (one *One) TArray(type_array string, field string, mark string, data ...interface{}) *One {
+	one.Append(TArray(type_array, field, mark, data...))
+	return one
+}
+
 func TArray(type_array string, field string, mark string, data ...interface{}) *One {
 	In := Array(field, mark, data...)
 	In.AddParam = "::" + type_array + "[]"
 	return In
 }
 
+func (one *One) Array(field string, mark string, data ...interface{}) *One {
+	one.Append(Array(field, mark, data...))
+	return one
+}
+
 func Array(field string, mark string, data ...interface{}) *One {
 	In := One{}
 
 	if _, find := MarkArrayList[mark]; find {
-		In.Mark = mark
+		In.Marker = mark
 	} else {
 		log.Fatalf("Array. Not defined %s\n", mark)
 	}

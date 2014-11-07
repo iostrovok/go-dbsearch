@@ -7,6 +7,8 @@ import (
 	"strings"
 )
 
+var ViewDebug bool = false
+
 var MarkList = map[string]bool{
 	"&&":    true,
 	"<":     true,
@@ -31,38 +33,97 @@ var LogicList = map[string]bool{
 	"OR":     true,
 	"INSERT": true,
 	"UPDATE": true,
+	"SELECT": true,
 }
 
 type One struct {
 	Data     []interface{}
 	Table    string
+	Columns  string
 	Field    string
-	Mark     string
+	Marker   string
 	AddParam string
 	Type     string // NoVals Array Where JSON
 }
 
-func Update(table string) *One {
+func Select(table, columns string) *One {
+
+	if ViewDebug {
+		log.Printf("exe Select for %s, %s\n", table, columns)
+	}
+
 	one := One{}
-	one.Mark = "UPDATE"
+	one.Marker = "SELECT"
+	one.Table = table
+	one.Columns = columns
+
+	return &one
+}
+
+func Update(table string) *One {
+
+	if ViewDebug {
+		log.Printf("exe Update for %s\n", table)
+	}
+
+	one := One{}
+	one.Marker = "UPDATE"
 	one.Table = table
 	return &one
 }
 
 func Insert(table string) *One {
+
+	if ViewDebug {
+		log.Printf("exe Insert for %s\n", table)
+	}
+
 	one := One{}
-	one.Mark = "INSERT"
+	one.Marker = "INSERT"
 	one.Table = table
 	return &one
 }
 
-func IN(field string, data []interface{}) *One {
-	one := One{}
-	one.Data = data
-	one.Mark = "IN"
-	one.Field = field
+func (one *One) _firstLogical() *One {
+	for _, v := range one.Data {
+		switch v.(type) {
+		case *One:
+			log.Printf("_firstLogical: len(one.Data) => %d\n", v.(*One).Marker)
+			switch v.(*One).Marker {
+			case "AND", "IN", "OR":
+				return v.(*One)
+			}
+		}
+	}
+	return nil
+}
 
-	return &one
+func (one *One) CompSelect() (string, []interface{}) {
+
+	if ViewDebug {
+		log.Println("exe CompSelect")
+	}
+
+	if one.Columns == "" || "" == one.Table {
+		log.Fatalln("Empty Table or Columns")
+	}
+
+	sql_s := "SELECT " + one.Columns + " FROM " + one.Table
+
+	log.Printf("CompSelect: len(one.Data) => %d\n", len(one.Data))
+
+	if len(one.Data) == 1 {
+		log.Printf("CompSelect: find: => %s\n", one.Data[0].(*One))
+		sql, values := one.Data[0].(*One).Comp()
+		return sql_s + " WHERE " + sql, values
+	}
+
+	if v := one._firstLogical(); v != nil {
+		sql, values := v.Comp()
+		return sql_s + " WHERE " + sql, values
+	}
+
+	return sql_s, []interface{}{}
 }
 
 func (one *One) CompUpdate() (string, []interface{}) {
@@ -71,6 +132,10 @@ func (one *One) CompUpdate() (string, []interface{}) {
 
 	values := []interface{}{}
 	sql_where := ""
+
+	if ViewDebug {
+		log.Println("exe CompUpdate")
+	}
 
 	for _, v := range one.Data {
 		switch v.(type) {
@@ -95,7 +160,7 @@ func (one *One) CompUpdate() (string, []interface{}) {
 				continue
 			}
 
-			tp := v.(*One).Mark
+			tp := v.(*One).Marker
 
 			if tp == "RET" {
 				sRet = append(sRet, v.(*One).Field)
@@ -124,6 +189,10 @@ func (one *One) CompUpdate() (string, []interface{}) {
 }
 
 func (one *One) CompInsert() (string, []interface{}) {
+	if ViewDebug {
+		log.Println("exe CompInsert")
+	}
+
 	sIn := []string{}
 	sVals := []string{}
 	sRet := []string{}
@@ -133,7 +202,7 @@ func (one *One) CompInsert() (string, []interface{}) {
 		switch v.(type) {
 		case *One:
 
-			tp := v.(*One).Mark
+			tp := v.(*One).Marker
 
 			if tp == "RET" {
 				sRet = append(sRet, v.(*One).Field)
@@ -180,7 +249,9 @@ func (one *One) CompInsert() (string, []interface{}) {
 }
 
 func (one *One) Comp(PointIn ...int) (string, []interface{}) {
-
+	if ViewDebug {
+		log.Printf("exe Comp for %s\n", one.Marker)
+	}
 	Point := 1
 	if len(PointIn) > 0 {
 		Point = PointIn[0]
@@ -189,18 +260,25 @@ func (one *One) Comp(PointIn ...int) (string, []interface{}) {
 	sqlLine := ""
 	values := []interface{}{}
 
-	if one.Mark == "INSERT" {
+	if one.Marker == "INSERT" {
 		if Point > 1 {
 			log.Fatalf("Comp. You can't combination INSERT into other request\n")
 		}
 		return one.CompInsert()
 	}
 
-	if one.Mark == "UPDATE" {
+	if one.Marker == "UPDATE" {
 		if Point > 1 {
 			log.Fatalf("Comp. You can't combination INSERT into other request\n")
 		}
 		return one.CompUpdate()
+	}
+
+	if one.Marker == "SELECT" {
+		if Point > 1 {
+			log.Fatalf("Comp. You can't combination INSERT into other request\n")
+		}
+		return one.CompSelect()
 	}
 
 	switch one.Type {
@@ -212,7 +290,7 @@ func (one *One) Comp(PointIn ...int) (string, []interface{}) {
 		one.Data = PrepareJsonVals(one.Data)
 	}
 
-	switch one.Mark {
+	switch one.Marker {
 	case "AND", "OR":
 		s := []string{}
 		for _, v := range one.Data {
@@ -228,7 +306,7 @@ func (one *One) Comp(PointIn ...int) (string, []interface{}) {
 				log.Fatalf("Comp. Not defined %T, %v\n", v, v)
 			}
 		}
-		sqlLine = "( " + strings.Join(s, " "+one.Mark+" ") + ") "
+		sqlLine = "( " + strings.Join(s, " "+one.Marker+" ") + ") "
 	case "IN":
 		s := []string{}
 		i := len(one.Data)
@@ -245,7 +323,7 @@ func (one *One) Comp(PointIn ...int) (string, []interface{}) {
 	case "IS":
 		sqlLine = one.Field + " IS " + iutils.AnyToString(one.Data[0])
 	default:
-		sqlLine = fmt.Sprintf(" %s %s $%d ", one.Field, one.Mark, Point)
+		sqlLine = fmt.Sprintf(" %s %s $%d ", one.Field, one.Marker, Point)
 		Point++
 		values = append(values, one.Data[0])
 	}
@@ -254,22 +332,55 @@ func (one *One) Comp(PointIn ...int) (string, []interface{}) {
 }
 
 func (one *One) Append(Nexters ...*One) *One {
-	if _, find := LogicList[one.Mark]; !find {
-		log.Fatalf("Append. Bad type for append %s\n", one.Mark)
+	if _, find := LogicList[one.Marker]; !find {
+		log.Fatalf("Append. Bad type for append %s\n", one.Marker)
 	}
-	for _, v := range Nexters {
-		one.Data = append(one.Data, v)
+
+	no_done := true
+	if one.Marker == "SELECT" {
+		if v := one._firstLogical(); v != nil {
+			no_done = false
+			v.Append(Nexters...)
+		}
 	}
+
+	if no_done {
+		for _, v := range Nexters {
+			one.Data = append(one.Data, v)
+		}
+	}
+
 	return one
 }
 
-func NLogic(mark string, Nexters ...*One) *One {
-	one := One{}
-	one.Logic(mark, Nexters...)
-	return &one
+func (one *One) Where(v *One) *One {
+
+	if ViewDebug {
+		log.Printf("exe *One.Where\n")
+	}
+
+	v.Type = "Where"
+	one.Data = append(one.Data, v)
+	return one
 }
 
-func (one *One) Logic(mark string, Nexters ...*One) {
+/* ------------------------------ NEW ------------------- */
+func NLogic(mark string, Nexters ...*One) *One {
+
+	if ViewDebug {
+		log.Printf("exe NLogic for %s\n", mark)
+	}
+
+	return Logic(mark, Nexters...)
+}
+
+func Logic(mark string, Nexters ...*One) *One {
+
+	one := One{}
+
+	if ViewDebug {
+		log.Printf("exe *One.Logic for %s\n", mark)
+	}
 
 	if _, find := LogicList[mark]; !find {
 		log.Fatalf("Logic. Not defined %s\n", mark)
@@ -279,13 +390,12 @@ func (one *One) Logic(mark string, Nexters ...*One) {
 	for _, v := range Nexters {
 		one.Data = append(one.Data, v)
 	}
-	one.Mark = mark
+	one.Marker = mark
+	return &one
 }
 
-func (one *One) Where(v *One) *One {
-	v.Type = "Where"
-	one.Data = append(one.Data, v)
-	return one
+func (one *One) Logic(mark string, Nexters ...*One) *One {
+	return one.Append(Logic(mark, Nexters...))
 }
 
 /*
@@ -293,6 +403,11 @@ func (one *One) Where(v *One) *One {
 	Func("start_date", ">", "now()")
 */
 func Func(field string) *One {
+
+	if ViewDebug {
+		log.Printf("exe Func for %s\n", field)
+	}
+
 	In := One{}
 
 	In.Type = "NoVals"
@@ -301,11 +416,32 @@ func Func(field string) *One {
 	return &In
 }
 
+func (one *One) Func(field string) *One {
+	if ViewDebug {
+		log.Printf("exe *One.Func for %s\n", field)
+	}
+
+	return one.Append(Func(field))
+}
+
+func (one *One) Mark(field string, mark string, data ...interface{}) *One {
+	if ViewDebug {
+		log.Printf("exe *One.Mark for %s, %s INTO %s\n", field, mark, one.Marker)
+	}
+
+	return one.Append(Mark(field, mark, data...))
+}
+
 func Mark(field string, mark string, data ...interface{}) *One {
+
+	if ViewDebug {
+		log.Printf("exe Mark for %s, %s\n", field, mark)
+	}
+
 	In := One{}
 
 	if _, find := MarkList[mark]; find {
-		In.Mark = mark
+		In.Marker = mark
 	} else {
 		log.Fatalf("Mark. Not defined %s\n", mark)
 	}
@@ -327,4 +463,21 @@ func Mark(field string, mark string, data ...interface{}) *One {
 	}
 
 	return &In
+}
+
+func (one *One) IN(field string, data []interface{}) *One {
+	if ViewDebug {
+		log.Printf("exe *One.IN for %s\n", field)
+	}
+
+	return one.Append(IN(field, data))
+}
+
+func IN(field string, data []interface{}) *One {
+	one := One{}
+	one.Data = data
+	one.Marker = "IN"
+	one.Field = field
+
+	return &one
 }
