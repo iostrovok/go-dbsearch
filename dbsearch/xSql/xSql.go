@@ -157,12 +157,12 @@ func (one *One) CompDelete() (string, []interface{}) {
 		}
 	}
 
-	//	if len(one.Data) > 1 {
-	//		log.Printf("one.Data: %T, %v\n", one.Data[0], one.Data)
-	//		log.Fatalln("Dad data params")
-	//	} else if len(one.Data) == 1 {
-	sql_where, values = one.Data[0].(*One).Comp()
-	//	}
+	if len(one.Data) == 1 {
+		sql_where, values = one.Data[0].(*One).Comp()
+		if sql_where != "" {
+			sql_where = " WHERE " + sql_where
+		}
+	}
 
 	ret := ""
 	if len(sRet) > 0 {

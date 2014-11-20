@@ -221,7 +221,7 @@ values is
 #### Result
 sql is
 ```sql
-	DELETE FROM public.mytable(f_name = $1 AND l_name = $2 AND age < $3 AND age > $4)
+	DELETE FROM public.mytable WHERE (f_name = $1 AND l_name = $2 AND age < $3 AND age > $4)
 ```
 
 values is 
