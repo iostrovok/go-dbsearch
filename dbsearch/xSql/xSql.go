@@ -34,6 +34,7 @@ var LogicList = map[string]bool{
 	"INSERT": true,
 	"UPDATE": true,
 	"SELECT": true,
+	"DELETE": true,
 }
 
 type One struct {
@@ -56,6 +57,19 @@ func Select(table, columns string) *One {
 	one.Marker = "SELECT"
 	one.Table = table
 	one.Columns = columns
+
+	return &one
+}
+
+func Delete(table string) *One {
+
+	if ViewDebug {
+		log.Printf("exe Delete for %s\n", table)
+	}
+
+	one := One{}
+	one.Marker = "DELETE"
+	one.Table = table
 
 	return &one
 }
@@ -124,6 +138,37 @@ func (one *One) CompSelect() (string, []interface{}) {
 	}
 
 	return sql_s, []interface{}{}
+}
+
+func (one *One) CompDelete() (string, []interface{}) {
+	sRet := []string{}
+
+	values := []interface{}{}
+	sql_where := ""
+
+	if ViewDebug {
+		log.Println("exe CompUpdate")
+	}
+
+	for _, v := range one.Data {
+		switch t := v.(type) {
+		default:
+			log.Printf("one.Data: %s\n", t)
+		}
+	}
+
+	//	if len(one.Data) > 1 {
+	//		log.Printf("one.Data: %T, %v\n", one.Data[0], one.Data)
+	//		log.Fatalln("Dad data params")
+	//	} else if len(one.Data) == 1 {
+	sql_where, values = one.Data[0].(*One).Comp()
+	//	}
+
+	ret := ""
+	if len(sRet) > 0 {
+		ret = " RETURNING " + strings.Join(sRet, ", ")
+	}
+	return " DELETE FROM " + one.Table + sql_where + ret, values
 }
 
 func (one *One) CompUpdate() (string, []interface{}) {
@@ -267,6 +312,13 @@ func (one *One) Comp(PointIn ...int) (string, []interface{}) {
 		return one.CompInsert()
 	}
 
+	if one.Marker == "DELETE" {
+		if Point > 1 {
+			log.Fatalf("Comp. You can't combination DELETE into other request\n")
+		}
+		return one.CompDelete()
+	}
+
 	if one.Marker == "UPDATE" {
 		if Point > 1 {
 			log.Fatalf("Comp. You can't combination INSERT into other request\n")
@@ -337,7 +389,7 @@ func (one *One) Append(Nexters ...*One) *One {
 	}
 
 	no_done := true
-	if one.Marker == "SELECT" {
+	if one.Marker == "SELECT" || one.Marker == "DELETE" {
 		if v := one._firstLogical(); v != nil {
 			no_done = false
 			v.Append(Nexters...)
