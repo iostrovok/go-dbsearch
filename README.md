@@ -1,10 +1,8 @@
 ## Simple GO interface to postgresql database and SQL templater ##
 
-	NOTICE! It is developer version.
-
 ### Introduction ###
 
-Please see more inforamtion in OSM wiki: http://wiki.openstreetmap.org/wiki/API_v0.6
+No yet
 
 ### Installing ###
 
