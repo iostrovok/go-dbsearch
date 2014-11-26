@@ -154,7 +154,7 @@ func (s *Searcher) Get(mType *AllRows, sqlLine string, values ...[]interface{}) 
 		}
 
 		switch t.Type {
-		case "datetime", "date":
+		case "datetime", "date", "time":
 			datetime := new(*time.Time)
 			rawResult = append(rawResult, datetime)
 		case "int", "numeric":
@@ -205,10 +205,12 @@ func convertType(Name string, mType *AllRows, raw_in interface{}) interface{} {
 	if raw_in == nil {
 		if t.IsArray {
 			switch t.Type {
-			case "text", "date", "datetime":
+			case "text", "date", "datetime", "time":
 				return []string{}
 			case "bigint", "int64", "int":
 				return []int{}
+			case "real":
+				return []float64{}
 			}
 			return []interface{}{}
 		} else {
@@ -242,7 +244,13 @@ func convertType(Name string, mType *AllRows, raw_in interface{}) interface{} {
 		} else {
 			return iutils.AnyToInt(raw_in)
 		}
-	case "date", "datetime":
+	case "real":
+		if t.IsArray {
+			return parseFloat64Array(raw_in)
+		} else {
+			return iutils.AnyToFloat64(raw_in)
+		}
+	case "date", "datetime", "time":
 		return raw_in
 	}
 
@@ -318,6 +326,20 @@ func parseIntArray(s interface{}) []int {
 	str = noNumbersStart.ReplaceAllString(str, "")
 	str = noNumbersEnd.ReplaceAllString(str, "")
 	return iutils.AnyToIntArray(noNumbers.Split(str, -1))
+}
+
+func parseFloat64Array(s interface{}) []float64 {
+	out := []float64{}
+
+	str := strings.TrimSpace(iutils.AnyToString(s))
+	str = noNumberDots.ReplaceAllString(str, "")
+	list := noNumberDotsSplit.Split(str, -1)
+
+	for _, v := range list {
+		out = append(out, iutils.AnyToFloat64(v))
+	}
+
+	return out
 }
 
 func parseArray(line string) []string {
