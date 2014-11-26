@@ -59,6 +59,14 @@ func (s *Searcher) Ping() error {
 	return nil
 }
 
+func SetDBI(db *sql.DB) (*Searcher, error) {
+
+	s := new(Searcher)
+	s.db = db
+
+	return s, nil
+}
+
 func DBI(poolSize int, dsn string, stop_error ...bool) (*Searcher, error) {
 
 	s := new(Searcher)
