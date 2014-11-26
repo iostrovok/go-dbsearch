@@ -15,6 +15,7 @@ func Test_List(t *testing.T) {
 		_01_List_Next(t, s)
 		_02_List_Last(t, s)
 		_03_List_First(t, s)
+		_04_List_Interface(t, s)
 	}
 	//t.Fatal("error test")
 }
@@ -77,5 +78,16 @@ func _03_List_First(t *testing.T, s *Searcher) {
 
 	if list.Fist().Int("col1") != 1 {
 		log.Fatalln("Error. dbsearch func (l *List) Last() *Row")
+	}
+}
+
+func _04_List_Interface(t *testing.T, s *Searcher) {
+
+	list, val := _000_Get_List(t, s)
+
+	in := list.Interface()
+
+	if len(in) != len(val) {
+		log.Fatalln("Error 1. dbsearch func (l *List) Interface() []interface{}")
 	}
 }

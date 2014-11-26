@@ -22,6 +22,16 @@ func (s *Searcher) List(mType *AllRows, sqlLine string, values ...[]interface{})
 	return &out, nil
 }
 
+func (l *List) Interface() []map[string]interface{} {
+	out := []map[string]interface{}{}
+
+	for _, v := range l.rows {
+		out = append(out, v.Interface())
+	}
+
+	return out
+}
+
 func (l *List) Count() int {
 	return len(l.rows)
 }

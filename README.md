@@ -105,6 +105,11 @@ or
 		inter := row.Interface() // map[string]interface{}
 		col_names := row.Cols()  // map[]string
 	}
+
+
+	// Data for json:
+	json := list.Interface() // []map[string]interface {}
+
 ```
 
 ## xSql ##
