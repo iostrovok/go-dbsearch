@@ -316,9 +316,12 @@ var (
 	_arrayValue = fmt.Sprintf("\"(%s)+\",", `[^"\\]|\\"|\\\\`)
 	quotedRe    = regexp.MustCompile(_arrayValue)
 
-	noNumbers      = regexp.MustCompile(`[^0-9]+`)
-	noNumbersStart = regexp.MustCompile(`^[^0-9]+`)
+	noNumbers      = regexp.MustCompile(`[^-0-9]+`)
+	noNumbersStart = regexp.MustCompile(`^[^-0-9]+`)
 	noNumbersEnd   = regexp.MustCompile(`[^0-9]+$`)
+
+	noNumberDots      = regexp.MustCompile(`[^-0-9\.,]+`)
+	noNumberDotsSplit = regexp.MustCompile(`(,|\s+)+`)
 )
 
 func parseIntArray(s interface{}) []int {
