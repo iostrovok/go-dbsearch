@@ -33,8 +33,10 @@ type AllRows struct {
 }
 
 type Searcher struct {
-	db  *sql.DB
-	log bool
+	db            *sql.DB
+	log           bool
+	DieOnColsName bool
+	LastCols      []string
 }
 
 func (s *Searcher) SetDebug(is_debug ...bool) {
@@ -115,16 +117,23 @@ func (s *Searcher) GetOne(mType *AllRows, sqlLine string, values ...[]interface{
 	return empty, nil
 }
 
-func (s *Searcher) Get(mType *AllRows, sqlLine string, values []interface{}) ([]map[string]interface{}, error) {
+func (s *Searcher) Get(mType *AllRows, sqlLine string, values ...[]interface{}) ([]map[string]interface{}, error) {
+
+	s.LastCols = []string{}
 
 	Out := make([]map[string]interface{}, 0)
+
+	value := []interface{}{}
+	if len(values) > 0 {
+		value = values[0]
+	}
 
 	if s.log {
 		log.Printf("dbsearch.Get: %s\n", sqlLine)
 		log.Printf("%v\n", values)
 	}
 
-	rows, err := s.db.Query(sqlLine, values...)
+	rows, err := s.db.Query(sqlLine, value...)
 	if err != nil {
 		return Out, err
 	}
@@ -134,6 +143,8 @@ func (s *Searcher) Get(mType *AllRows, sqlLine string, values []interface{}) ([]
 	if err != nil {
 		return Out, err
 	}
+
+	s.LastCols = cols
 
 	rawResult := make([]interface{}, 0)
 	for i := 0; i < len(cols); i++ {
