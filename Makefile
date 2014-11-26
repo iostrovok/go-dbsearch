@@ -4,9 +4,18 @@ ROOT := $(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))
 XSQL := ${ROOT}/dbsearch/xSql
 BIN  := ${ROOT}/bin
 #export GOBIN := ${ROOT}/bin
-export GOPATH := ${GP}:${GP}/go:${ROOT}:${XSQL}
+export GOPATH := ${GOPATH}:${GP}:${GP}/go:${ROOT}:${XSQL}
+export PG_USER := postgres
+export PG_PASSWD := 
+export PG_HOST := 127.0.0.1
+export PG_PORT := 5432
+export DBNAME := pqgotest
+export SSLMODE := 
 
 #.PHONY: all test build index import run
+
+test:
+	go test ./dbsearch/
 
 test-xsql:
 	go test -cover -coverprofile ./tmp.out ./dbsearch/xSql/*.go 
