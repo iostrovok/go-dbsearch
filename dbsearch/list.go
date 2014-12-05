@@ -68,6 +68,16 @@ func (l *List) Reset() {
 	l.iter = -1
 }
 
+func (l *List) Range() (int, *Row) {
+
+	l.iter++
+	if l.iter >= len(l.rows) {
+		return -1, nil
+	}
+
+	return l.iter, l.rows[l.iter]
+}
+
 func (l *List) Next() *Row {
 
 	l.iter++

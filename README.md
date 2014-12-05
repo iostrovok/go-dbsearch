@@ -93,7 +93,8 @@ or
 	count := list.Count()
 	log.Printf("Total %d records\n", count)
 
-	for i, row := list.Range(); row != nil && i != -1 {
+	i, row := list.Range()
+	for i > -1 { // Or i > -1
 		name := row.Str("name") // str
 		fl := row.Float("avarege") // float64
 		id := row.Int("id") // int
@@ -102,6 +103,8 @@ or
 		mdt := row.DateTime("date_time_created") // time
 		inter := row.Interface() // map[string]interface{}
 		col_names := row.Cols()  // map[]string
+
+		i, row = list.Range()
 	}
 
 

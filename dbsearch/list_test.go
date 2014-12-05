@@ -15,7 +15,8 @@ func Test_List(t *testing.T) {
 		_01_List_Next(t, s)
 		_02_List_Last(t, s)
 		_03_List_First(t, s)
-		_04_List_Interface(t, s)
+		_04_List_Range(t, s)
+		_11_List_Interface(t, s)
 	}
 	//t.Fatal("error test")
 }
@@ -34,6 +35,15 @@ func _000_Get_List(t *testing.T, s *Searcher) (*List, []interface{}) {
 	return list, val
 }
 
+func _04_List_Range(t *testing.T, s *Searcher) {
+
+	list, val := _000_Get_List(t, s)
+
+	__04_List_Range(t, s, list, val)
+	list.Reset()
+	__04_List_Range(t, s, list, val)
+}
+
 func _01_List_Next(t *testing.T, s *Searcher) {
 
 	list, val := _000_Get_List(t, s)
@@ -41,6 +51,26 @@ func _01_List_Next(t *testing.T, s *Searcher) {
 	__01_List_Next(t, s, list, val)
 	list.Reset()
 	__01_List_Next(t, s, list, val)
+}
+
+func __04_List_Range(t *testing.T, s *Searcher, list *List, val []interface{}) {
+
+	CountGet := 0
+	i, r := list.Range()
+	for i > -1 {
+		CountGet++
+		switch r.Int("col1") {
+		case 1, 22, 999, 192, 111:
+			// Nothing
+		default:
+			log.Fatalln("Error. dbsearch 'func (l *List) Range() (int, *Row)'")
+		}
+		i, r = list.Range()
+	}
+
+	if CountGet != len(val) {
+		log.Fatalln("Error. dbsearch 'func (l *List) Range() (int, *Row)' don't return all rows")
+	}
 }
 
 func __01_List_Next(t *testing.T, s *Searcher, list *List, val []interface{}) {
@@ -81,7 +111,7 @@ func _03_List_First(t *testing.T, s *Searcher) {
 	}
 }
 
-func _04_List_Interface(t *testing.T, s *Searcher) {
+func _11_List_Interface(t *testing.T, s *Searcher) {
 
 	list, val := _000_Get_List(t, s)
 
