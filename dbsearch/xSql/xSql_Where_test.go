@@ -70,5 +70,5 @@ func _01_Test_Where(t *testing.T) {
 		check_result(t, sql, "f "+m+" ARRAY[ $1, $2 ]::int[]", values, 2)
 	}
 
-	t.Fatal("error insert xSql: text view")
+	//t.Fatal("error insert xSql: text view")
 }
