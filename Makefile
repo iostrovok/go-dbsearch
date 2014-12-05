@@ -20,10 +20,28 @@ test:
 	go test ./dbsearch/
 
 test-xsql:
+	go test ./dbsearch/xSql/*.go 
+
+test-xsql-insert:
+	go test ./dbsearch/xSql/xSql_Insert_test.go ./dbsearch/xSql/xSqlTestFunc.go ./dbsearch/xSql/xSql.go ./dbsearch/xSql/xSqlJson.go ./dbsearch/xSql/xSqlArray.go
+
+test-xsql-delete:
+	go test ./dbsearch/xSql/xSql_Delete_test.go ./dbsearch/xSql/xSqlTestFunc.go ./dbsearch/xSql/xSql.go ./dbsearch/xSql/xSqlJson.go ./dbsearch/xSql/xSqlArray.go
+
+test-xsql-select:
+	go test ./dbsearch/xSql/xSql_Select_test.go ./dbsearch/xSql/xSqlTestFunc.go ./dbsearch/xSql/xSql.go ./dbsearch/xSql/xSqlJson.go ./dbsearch/xSql/xSqlArray.go
+
+test-xsql-update:
+	go test ./dbsearch/xSql/xSql_Update_test.go ./dbsearch/xSql/xSqlTestFunc.go ./dbsearch/xSql/xSql.go ./dbsearch/xSql/xSqlJson.go ./dbsearch/xSql/xSqlArray.go
+
+test-xsql-where:
+	go test ./dbsearch/xSql/xSql_Where_test.go ./dbsearch/xSql/xSqlTestFunc.go ./dbsearch/xSql/xSql.go ./dbsearch/xSql/xSqlJson.go ./dbsearch/xSql/xSqlArray.go
+
+test-xsql-cover:
 	go test -cover -coverprofile ./tmp.out ./dbsearch/xSql/*.go 
 	sed 's/command-line-arguments/\.\/dbsearch\/xSql/' < ./tmp.out > ./tmp_fix.out
 	go tool cover -html=./tmp_fix.out -o xSql.html
-	rm ./tmp_fix.out ./tmp.out
+	rm ./tmp_fix.out ./tmp.out	
 
 test-list:
 	echo ${GOPATH}
