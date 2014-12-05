@@ -83,13 +83,13 @@ func __01_List_Next(t *testing.T, s *Searcher, list *List, val []interface{}) {
 		case 1, 22, 999, 192, 111:
 			// Nothing
 		default:
-			log.Fatalln("Error. dbsearch func (l *List) Next() *Row")
+			log.Fatalln("Error. dbsearch 'func (l *List) Next() *Row'")
 		}
 		r = list.Next()
 	}
 
 	if CountGet != len(val) {
-		log.Fatalln("Error. dbsearch func (l *List) Next() *Row don't return all rows")
+		log.Fatalln("Error. dbsearch 'func (l *List) Next() *Row' don't return all rows")
 	}
 }
 
