@@ -102,7 +102,6 @@ func (one *One) _firstLogical() *One {
 	for _, v := range one.Data {
 		switch v.(type) {
 		case *One:
-			log.Printf("_firstLogical: len(one.Data) => %d\n", v.(*One).Marker)
 			switch v.(*One).Marker {
 			case "AND", "IN", "OR":
 				return v.(*One)
