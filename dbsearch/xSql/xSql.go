@@ -124,10 +124,7 @@ func (one *One) CompSelect() (string, []interface{}) {
 
 	sql_s := "SELECT " + one.Columns + " FROM " + one.Table
 
-	log.Printf("CompSelect: len(one.Data) => %d\n", len(one.Data))
-
 	if len(one.Data) == 1 {
-		log.Printf("CompSelect: find: => %s\n", one.Data[0].(*One))
 		sql, values := one.Data[0].(*One).Comp()
 		return sql_s + " WHERE " + sql, values
 	}
@@ -148,13 +145,6 @@ func (one *One) CompDelete() (string, []interface{}) {
 
 	if ViewDebug {
 		log.Println("exe CompUpdate")
-	}
-
-	for _, v := range one.Data {
-		switch t := v.(type) {
-		default:
-			log.Printf("one.Data: %s\n", t)
-		}
 	}
 
 	if len(one.Data) == 1 {
@@ -444,6 +434,14 @@ func Logic(mark string, Nexters ...*One) *One {
 	}
 	one.Marker = mark
 	return &one
+}
+
+func (one *One) Or(Nexters ...*One) *One {
+	return one.Logic("OR", Nexters...)
+}
+
+func (one *One) And(Nexters ...*One) *One {
+	return one.Logic("AND", Nexters...)
 }
 
 func (one *One) Logic(mark string, Nexters ...*One) *One {

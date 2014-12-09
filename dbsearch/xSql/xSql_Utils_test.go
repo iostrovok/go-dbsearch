@@ -5,9 +5,9 @@ import (
 	"testing"
 )
 
-func Test(t *testing.T) {
+func Test_Quote(t *testing.T) {
 	_001_Test_Quote(t)
-	t.Fatal("test case")
+	//t.Fatal("test case")
 }
 
 func _001_Test_Quote(t *testing.T) {

@@ -7,7 +7,7 @@ import (
 func Test_Insert(t *testing.T) {
 	_01_Test_Insert(t)
 	_11_Test_Insert(t)
-	t.Fatal("test case")
+	//t.Fatal("test case")
 }
 
 func _01_Test_Insert(t *testing.T) {
