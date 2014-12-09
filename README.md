@@ -118,6 +118,20 @@ or
 ```go
 	import "github.com/iostrovok/go-dbsearch/dbsearch/xSql"
 ```
+
+### Quote ###
+```go
+	testSuite := map[string]interface{}{
+		"the molecule's structure": "'the molecule''s structure'",
+		" I'''am an actor.":        "' I''''''am an actor.'",
+	}
+
+	for k, v := range testSuite {
+		q := xSql.Quote(k) // v == q
+		log.Printf("%s : %s => %s\n", k, v, q)
+	}
+```
+
 ### Simple AND / OR ###
 #### Example AND ####
 ```go

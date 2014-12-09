@@ -22,6 +22,9 @@ test:
 test-xsql:
 	go test ./dbsearch/xSql/*.go 
 
+test-xsql-utils:
+	go test ./dbsearch/xSql/xSql_Utils_test.go ./dbsearch/xSql/xSqlTestFunc.go  ./dbsearch/xSql/xSqlUtils.go
+
 test-xsql-insert:
 	go test ./dbsearch/xSql/xSql_Insert_test.go ./dbsearch/xSql/xSqlTestFunc.go ./dbsearch/xSql/xSql.go ./dbsearch/xSql/xSqlJson.go ./dbsearch/xSql/xSqlArray.go
 
