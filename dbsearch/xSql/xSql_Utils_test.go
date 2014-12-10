@@ -11,14 +11,15 @@ func Test_Quote(t *testing.T) {
 }
 
 func _001_Test_Quote(t *testing.T) {
-	testSuite := map[string]interface{}{
+	testSuite := map[interface{}]string{
 		"the molecule's structure": "'the molecule''s structure'",
 		" I'''am an actor.":        "' I''''''am an actor.'",
+		100500:                     "'100500'",
 	}
 
 	for k, v := range testSuite {
 		q := Quote(k)
-		log.Printf("%s : %s => %s\n", k, v, q)
+		log.Printf("%v : %s => %s\n", k, v, q)
 		if v != q {
 			t.Fatal("Error func Quote(val interface{}) string")
 		}

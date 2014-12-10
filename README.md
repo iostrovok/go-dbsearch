@@ -121,21 +121,25 @@ or
 
 ### Quote ###
 ```go
-	testSuite := map[string]interface{}{
+	testSuite := map[interface{}]string{
 		"the molecule's structure": "'the molecule''s structure'",
 		" I'''am an actor.":        "' I''''''am an actor.'",
+		100500:                     "'100500'",
 	}
 
 	for k, v := range testSuite {
 		q := xSql.Quote(k) // v == q
-		log.Printf("%s : %s => %s\n", k, v, q)
+		log.Printf("%v : %s => %s\n", k, v, q)
 	}
 ```
+Notece!
+Don't use xSql.Quote for float, real & structure.
+So xSql.Quote(100.5) is "'100.500000'" on my system.
 
 ### Simple AND / OR ###
 #### Example AND ####
 ```go
-	sql, values := Select("public.mytable", "*").
+	sql, values := xSql.Select("public.mytable", "*").
 		Logic("AND").
 		Mark("a", "=", 1).
 		Mark("b", "=", 2).
