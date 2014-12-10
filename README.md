@@ -158,7 +158,7 @@ values is
 
 #### Example OR
 ```go
-	sql, values := Select("public.mytable", "*").
+	sql, values := xSql.Select("public.mytable", "*").
 		Logic("OR").
 		Mark("a", "=", 1).
 		Mark("b", "=", 2).
@@ -210,10 +210,10 @@ values_1, values_2 are
 
 #### Example
 ```go
-	where := Logic("AND").Mark("f_name", "=", "John").Mark("l_name", "=", "Lennon").
+	where := xSql.Logic("AND").Mark("f_name", "=", "John").Mark("l_name", "=", "Lennon").
 		Mark("age", "<", 40)
 
-	sql, values := Update("public.mytable").
+	sql, values := xSql.Update("public.mytable").
 		Mark("sended", "=", 1).
 		Where(where).
 		Comp()
@@ -234,7 +234,7 @@ values is
 
 #### Example
 ```go
-	sql, values := Delete("public.mytable").
+	sql, values := xSql.Delete("public.mytable").
 		Logic("AND").Mark("f_name", "=", "John").
 		Mark("l_name", "=", "Lennon").
 		Mark("age", "<", 40).
