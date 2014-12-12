@@ -15,14 +15,16 @@ type PlaceTest struct {
 }
 */
 type TestPlace struct {
-	col1 int     `db:"col1" type:"int"`
-	col2 string  `db:"col2" type:"text"`
-	col3 string  `db:"col3" type:"text"`
-	col4 float64 `db:"col4" type:"real"`
-	col5 string  `db:"col5" type:"datetime"`
-	col6 string  `db:"col6" type:"date"`
-	col7 string  `db:"col7" type:"date"`
-	col8 string  `db:"col8" type:"real" is_array:"yes"`
+	col1  int     `db:"col1" type:"int"`
+	col2  string  `db:"col2" type:"text"`
+	col3  string  `db:"col3" type:"text"`
+	col4  float64 `db:"col4" type:"real"`
+	col5  string  `db:"col5" type:"datetime"`
+	col6  string  `db:"col6" type:"date"`
+	col7  string  `db:"col7" type:"date"`
+	col8  string  `db:"col8" type:"real" is_array:"yes"`
+	col9  string  `db:"col9" type:"int" is_array:"yes"`
+	col10 string  `db:"col10" type:"text" is_array:"yes"`
 }
 
 var mTestType *AllRows = &AllRows{}
@@ -73,16 +75,16 @@ func init_test_data(t *testing.T) *Searcher {
 
 	sql_create := " CREATE TABLE public.test (col1 int, col2 character varying(255), " +
 		" col3 text, col4 real, col5 timestamp, " +
-		" col6 date, col7 time, col8 real[] ) "
+		" col6 date, col7 time, col8 real[], col9 int[], col10 text[] ) "
 	dbh.Do(sql_create)
 
-	sql_cols := "INSERT INTO test(col1, col2, col3, col4, col5, col6, col7, col8) "
+	sql_cols := "INSERT INTO test(col1, col2, col3, col4, col5, col6, col7, col8, col9, col10) "
 	sql_vals := []string{
-		"VALUES (1,   'John',  'Lennon',   9.12313,  '1945-01-01 00:00:00', '1945-01-01', '00:00:00', '{3.56, 3.45}'::real[])",
-		"VALUES (22,  'Telok', 'Macar',    -9.12313, '1812-12-23 06:15:15', '1812-12-23', '06:15:15', '{-3.56, -3.45}'::real[])",
-		"VALUES (999, 'Harr',  'Jordjjj',  +9.12313, '1763-05-28 12:30:30', '1763-05-28', '12:30:30', '{3.56, 3.45}'::real[])",
-		"VALUES (192, 'Mart',  'Smart',    -9.12313, '0454-06-02 18:45:45', '0454-06-02', '18:45:45', '{-3.56, -3.45}'::real[])",
-		"VALUES (111, 'Storm', 'Tropical', 9.12313,  '1001-11-02 23:59:59', '1001-12-31', '18:29:30', '{3.56, 3.45}'::real[])",
+		"VALUES (1,   'John',  'Lennon',   9.12313,  '1945-01-01 00:00:00', '1945-01-01', '00:00:00', '{3.56, 3.45}'::real[], '{10,20,30,40,50}'::int[], '{one,two,three,four}'::text[])",
+		"VALUES (22,  'Telok', 'Macar',    -9.12313, '1812-12-23 06:15:15', '1812-12-23', '06:15:15', '{-3.56, -3.45}'::real[], '{20}'::int[], '{one}'::text[])",
+		"VALUES (999, 'Harr',  'Jordjjj',  +9.12313, '1763-05-28 12:30:30', '1763-05-28', '12:30:30', '{3.56, 3.45}'::real[], '{30}'::int[], '{one}'::text[])",
+		"VALUES (192, 'Mart',  'Smart',    -9.12313, '0454-06-02 18:45:45', '0454-06-02', '18:45:45', '{-3.56, -3.45}'::real[], '{40}'::int[], '{one}'::text[])",
+		"VALUES (111, 'Storm', 'Tropical', 9.12313,  '1001-11-02 23:59:59', '1001-12-31', '18:29:30', '{3.56, 3.45}'::real[], '{50}'::int[], '{one}'::text[])",
 	}
 
 	for _, v := range sql_vals {

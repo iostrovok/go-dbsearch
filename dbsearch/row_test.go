@@ -8,27 +8,31 @@ import (
 )
 
 var date map[string]interface{} = map[string]interface{}{
-	"col1": 1,
-	"col2": "text",
-	"col3": 3.0,
-	"col4": "golova",
-	"col5": "golova",
-	"col6": "golova",
-	"col7": "golova",
-	"col8": []float64{6.66, 45.6},
+	"col1":  1,
+	"col2":  "text",
+	"col3":  3.0,
+	"col4":  "golova",
+	"col5":  "golova",
+	"col6":  "golova",
+	"col7":  "golova",
+	"col8":  []float64{6.66, 45.6},
+	"col9":  []int{10, 20, 30, 40, 50},
+	"col10": []string{"one", "two", "three", "four"},
 }
 
-var cols []string = []string{"col1", "col2", "col3", "col4", "col5", "col6", "col7", "col8"}
+var cols []string = []string{"col1", "col2", "col3", "col4", "col5", "col6", "col7", "col8", "col9", "col10"}
 
 var rows map[string]bool = map[string]bool{
-	"col1": true,
-	"col2": true,
-	"col3": true,
-	"col4": true,
-	"col5": true,
-	"col6": true,
-	"col7": true,
-	"col8": true,
+	"col1":  true,
+	"col2":  true,
+	"col3":  true,
+	"col4":  true,
+	"col5":  true,
+	"col6":  true,
+	"col7":  true,
+	"col8":  true,
+	"col9":  true,
+	"col10": true,
 }
 
 func Test_Row(t *testing.T) {
@@ -43,6 +47,8 @@ func Test_Row(t *testing.T) {
 		_05_Date(t, s)
 		_06_DateTime(t, s)
 		_07_Time(t, s)
+		_08_StrArray(t, s)
+		_09_IntArray(t, s)
 	}
 	//t.Fatal("error test")
 }
@@ -54,12 +60,12 @@ func _01_Set(t *testing.T, s *Searcher) {
 		log.Fatalln("Error. dbsearch func (r *Row) IsEmpty() bool")
 	}
 	c := r.Cols()
-	if 8 != len(c) {
+	if 10 != len(c) {
 		log.Fatalln("Error. dbsearch func (r *Row) Cols() []string")
 	}
 
 	i := r.Interface()
-	if 8 != len(i) {
+	if 10 != len(i) {
 		log.Fatalln("Error. dbsearch func (r *Row) Interface() map[string]interface{}")
 	}
 }
@@ -144,6 +150,38 @@ func _07_Time(t *testing.T, s *Searcher) {
 	it := time.Date(0, 1, 1, 18, 29, 30, 0, time.UTC)
 	if !it.Equal(*r.Time("col7")) {
 		log.Fatalln("Error. dbsearch func (r *Row) DateTime(name string) time.Time")
+	}
+	//log.Fatalln("Error. Test error.")
+}
+
+func _08_StrArray(t *testing.T, s *Searcher) {
+	r, err := s.One(mTestType, "select * from  public.test where col1 = $1", []interface{}{1})
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	log.Printf("_08_StrArray: %v\n", r.StrArray("col10"))
+
+	res := r.StrArray("col10")
+
+	if len(res) != 4 {
+		log.Fatalln("Error. dbsearch func (r *Row) StrArray(name string) []string")
+	}
+	//log.Fatalln("Error. Test error.")
+}
+
+func _09_IntArray(t *testing.T, s *Searcher) {
+	r, err := s.One(mTestType, "select * from  public.test where col1 = $1", []interface{}{1})
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	log.Printf("_08_StrArray: %v\n", r.IntArray("col9"))
+
+	res := r.IntArray("col9")
+
+	if len(res) != 5 {
+		log.Fatalln("Error. dbsearch func (r *Row) IntArray(name string) []string")
 	}
 	//log.Fatalln("Error. Test error.")
 }

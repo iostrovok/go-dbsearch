@@ -104,6 +104,9 @@ or
 		inter := row.Interface() // map[string]interface{}
 		col_names := row.Cols()  // map[]string
 
+		string_slice := row.StrArray("text_array_column") // []string
+		int_slice := row.IntArray("int_array_column")  // []int
+
 		i, row = list.Range()
 	}
 

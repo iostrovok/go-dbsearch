@@ -50,6 +50,10 @@ test-list:
 	echo ${GOPATH}
 	go test ./dbsearch/dbsearch.go ./dbsearch/list_test.go ./dbsearch/dbsearch_test.go ./dbsearch/list.go ./dbsearch/row.go
 
+test-row:
+	echo ${GOPATH}
+	go test ./dbsearch/dbsearch.go ./dbsearch/row_test.go ./dbsearch/dbsearch_test.go ./dbsearch/list.go ./dbsearch/row.go
+
 clean:
 	rm ./tmp_fix.out ./tmp.out ./xSql.html
 

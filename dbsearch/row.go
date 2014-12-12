@@ -96,6 +96,22 @@ func (r *Row) Int(name string) int {
 	return iutils.AnyToInt(r.date[name])
 }
 
+func (r *Row) IntArray(name string) []int {
+	if !r._checkColumn(name) {
+		return []int{}
+	}
+
+	return iutils.AnyToIntArray(r.date[name])
+}
+
+func (r *Row) StrArray(name string) []string {
+	if !r._checkColumn(name) {
+		return []string{}
+	}
+
+	return iutils.AnyToStringArray(r.date[name])
+}
+
 func (r *Row) Date(name string) *time.Time {
 	out := r.DateTime(name)
 
