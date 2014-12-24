@@ -39,6 +39,14 @@ type Searcher struct {
 	LastCols      []string
 }
 
+func (s *Searcher) Close() error {
+	return s.db.Close()
+}
+
+func (s *Searcher) DBH() *sql.DB {
+	return s.db
+}
+
 func (s *Searcher) SetDebug(is_debug ...bool) {
 
 	if len(is_debug) > 0 {
