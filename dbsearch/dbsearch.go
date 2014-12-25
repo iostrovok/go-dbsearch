@@ -34,6 +34,8 @@ type AllRows struct {
 
 type Searcher struct {
 	db            *sql.DB
+	poolSize      int
+	dsn           string
 	log           bool
 	DieOnColsName bool
 	LastCols      []string
@@ -77,6 +79,31 @@ func SetDBI(db *sql.DB) (*Searcher, error) {
 	return s, nil
 }
 
+func (s *Searcher) StartReConnect(rto_in ...int) {
+
+	rto := 5
+	if len(rto_in) > 0 && rto_in[0] > 0 {
+		rto = rto_in[0]
+	}
+
+	go func() {
+		// Pings our DB each rto_in seconds
+		for {
+			time.Sleep(time.Duration(rto) * time.Second)
+			if err := s.Ping(); err != nil {
+				s.Close()
+
+				if db, err := sql.Open("postgres", s.dsn); err != nil {
+					log.Println(err)
+				} else {
+					s.db = db
+					s.db.SetMaxOpenConns(s.poolSize)
+				}
+			}
+		}
+	}()
+}
+
 func DBI(poolSize int, dsn string, stop_error ...bool) (*Searcher, error) {
 
 	s := new(Searcher)
@@ -92,6 +119,9 @@ func DBI(poolSize int, dsn string, stop_error ...bool) (*Searcher, error) {
 
 	s.db = db
 	s.db.SetMaxOpenConns(poolSize)
+
+	s.poolSize = poolSize
+	s.dsn = dsn
 
 	return s, nil
 }
