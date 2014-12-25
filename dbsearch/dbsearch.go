@@ -59,16 +59,7 @@ func (s *Searcher) SetDebug(is_debug ...bool) {
 }
 
 func (s *Searcher) Ping() error {
-
-	if s.db == nil {
-		return fmt.Errorf("can't connect to DB")
-	}
-
-	if err := s.db.Ping(); err != nil {
-		return err
-	}
-
-	return nil
+	return s.db.Ping()
 }
 
 func SetDBI(db *sql.DB) (*Searcher, error) {
