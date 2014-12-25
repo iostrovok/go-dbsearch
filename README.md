@@ -29,6 +29,7 @@ See example for more inforamtion. They are in "./dbsearch/example/" path.
 	dsn := "user=pqgotest dbname=pqgotest sslmode=verify-full"
 
 	dbh, err := dbsearch.DBI(pool_size, dsn, stop_error)
+	dbh.StartReConnect(10) // Tries to reconnect each 10 seconds if connect was broken
 
 ```
 
