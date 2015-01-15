@@ -1,12 +1,11 @@
 package dbsearch
 
 import (
-	"log"
 	"reflect"
 	"testing"
 )
 
-func Test_Row(t *testing.T) {
+func Test_Main(t *testing.T) {
 	s := init_test_data(t)
 	if s != nil {
 		_01_int32(t, s)
@@ -323,6 +322,4 @@ func _61_getone_func_test(t *testing.T, s *Searcher) {
 	make_t_table(s, sql_create, sql_cols, sql_vals)
 	p := getone_TestPlace{}
 	s.GetOne(getone_mTestType, &p, "SELECT * FROM public.test ORDER BY 1")
-	log.Printf("\n-----------\nrrrr: %#v\n", p)
-	log.Printf("%s\n", p)
 }

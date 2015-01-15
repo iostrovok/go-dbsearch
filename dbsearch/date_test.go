@@ -7,8 +7,6 @@ import (
 	"time"
 )
 
-const TEST_TIME_ZONE = "Europe/Berlin"
-
 func Test_DateTime(t *testing.T) {
 	s := init_test_data(t)
 	if s != nil {
@@ -24,7 +22,7 @@ func Test_DateTime(t *testing.T) {
 	//t.Fatal("Success [no error] test")
 }
 
-func array_main_f_test_table(s *Searcher) {
+func datetime_main_f_test_table(s *Searcher) {
 	sql_create := " CREATE TABLE public.test ( " +
 		"col1 int, col2 date, col3 time, col4 timestamp, " +
 		"col5 timestamp with time zone, col6 timestamp with time zone " +
@@ -67,7 +65,7 @@ var time_string_mTestType *AllRows = &AllRows{
 }
 
 func _01_datetime_string(t *testing.T, s *Searcher) {
-	array_main_f_test_table(s)
+	datetime_main_f_test_table(s)
 	p := []time_string_TestPlace{}
 	s.Get(time_string_mTestType, &p, "SELECT * FROM public.test ORDER BY 1")
 
@@ -106,7 +104,7 @@ var date_int_mTestType *AllRows = &AllRows{
 }
 
 func _11_datetime_int(t *testing.T, s *Searcher) {
-	array_main_f_test_table(s)
+	datetime_main_f_test_table(s)
 	p := []date_int_TestPlace{}
 	s.Get(date_int_mTestType, &p, "SELECT * FROM public.test ORDER BY 1")
 
@@ -141,7 +139,7 @@ var date_int64_mTestType *AllRows = &AllRows{
 }
 
 func _12_datetime_int64(t *testing.T, s *Searcher) {
-	array_main_f_test_table(s)
+	datetime_main_f_test_table(s)
 	p := []date_int64_TestPlace{}
 	s.Get(date_int64_mTestType, &p, "SELECT * FROM public.test ORDER BY 1")
 
@@ -176,7 +174,7 @@ var date_time_mTestType *AllRows = &AllRows{
 }
 
 func _21_datetime_time(t *testing.T, s *Searcher) {
-	array_main_f_test_table(s)
+	datetime_main_f_test_table(s)
 	p := []date_time_TestPlace{}
 
 	s.Get(date_time_mTestType, &p, "SELECT * FROM public.test ORDER BY 1")
@@ -219,7 +217,7 @@ var time_uint_mTestType *AllRows = &AllRows{
 }
 
 func _41_datetime_uint(t *testing.T, s *Searcher) {
-	array_main_f_test_table(s)
+	datetime_main_f_test_table(s)
 	p := []time_uint_TestPlace{}
 	s.Get(time_uint_mTestType, &p, "SELECT * FROM public.test ORDER BY 1")
 
@@ -254,7 +252,7 @@ var time_float64_mTestType *AllRows = &AllRows{
 }
 
 func _31_datetime_float64(t *testing.T, s *Searcher) {
-	array_main_f_test_table(s)
+	datetime_main_f_test_table(s)
 	p := []time_float64_TestPlace{}
 	s.Get(time_float64_mTestType, &p, "SELECT * FROM public.test ORDER BY 1")
 
@@ -289,7 +287,7 @@ var time_map_mTestType *AllRows = &AllRows{
 }
 
 func _51_datetime_map(t *testing.T, s *Searcher) {
-	array_main_f_test_table(s)
+	datetime_main_f_test_table(s)
 	p := []time_map_TestPlace{}
 	s.Get(time_map_mTestType, &p, "SELECT * FROM public.test ORDER BY 1")
 
@@ -343,7 +341,7 @@ var time_intlist_mTestType *AllRows = &AllRows{
 }
 
 func _61_datetime_intlist(t *testing.T, s *Searcher) {
-	array_main_f_test_table(s)
+	datetime_main_f_test_table(s)
 	p := []time_intlist_TestPlace{}
 	s.Get(time_intlist_mTestType, &p, "SELECT * FROM public.test ORDER BY 1")
 

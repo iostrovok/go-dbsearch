@@ -6,9 +6,7 @@ import (
 	"testing"
 )
 
-const TEST_TIME_ZONE = "Europe/Berlin"
-
-func Test_DateTime(t *testing.T) {
+func Test_AutoLoad(t *testing.T) {
 	s := init_test_data(t)
 	s.SetDebug(false)
 	if s != nil {

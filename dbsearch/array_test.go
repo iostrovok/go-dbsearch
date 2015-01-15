@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-func Test_Row(t *testing.T) {
+func Test_Array(t *testing.T) {
 	s := init_test_data(t)
 	if s != nil {
 		_01_array_int(t, s)

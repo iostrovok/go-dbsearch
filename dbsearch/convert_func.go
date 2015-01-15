@@ -14,7 +14,7 @@ import (
 // An action transitions stochastically to a resulting score.
 type ConvertData func(data interface{}, val reflect.Value) error
 
-var VIEW_DEBUG bool = true
+var VIEW_DEBUG bool = false
 
 func (oRow OneRow) DebugV(fieldName string, fTType reflect.Type, data interface{}) {
 	if VIEW_DEBUG {

@@ -8,6 +8,8 @@ import (
 	//"time"
 )
 
+const TEST_TIME_ZONE = "Europe/Berlin"
+
 func init_test_data(t *testing.T) *Searcher {
 	login := os.Getenv("PG_USER")
 	pass := os.Getenv("PG_PASSWD")
