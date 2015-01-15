@@ -47,6 +47,7 @@ type Searcher struct {
 	log           bool
 	DieOnColsName bool
 	LastCols      []string
+	IsOneRec      bool
 }
 
 func (s *Searcher) Close() error {
@@ -131,126 +132,42 @@ func (s *Searcher) GetCount(sqlLine string, values []interface{}) (int, error) {
 	return count, err
 }
 
-/*
 func (s *Searcher) GetOne(mType *AllRows, p interface{}, sqlLine string, values ...[]interface{}) error {
-	mType.PreInit()
-	return s._GetOne(mType, reflect.ValueOf(p), sqlLine, values...)
-}
+	defer func() { s.IsOneRec = false }()
 
-func (s *Searcher) _GetOne(mType *AllRows, p reflect.Value, sqlLine string, values ...[]interface{}) error {
-
-	sqlLine += " LIMIT 1 OFFSET 0 "
-
-	value := []interface{}{}
-	if len(values) > 0 {
-		value = values[0]
-	}
-
-	Out := []TestPlace{}
-	err := s.Get(mType, &Out, sqlLine, value)
+	R, err := s._initGet(mType, sqlLine, values...)
 	if err != nil {
 		return err
 	}
-
-	if len(Out) > 0 {
-		p.Set(reflect.ValueOf(Out[0]))
+	defer R.Rows.Close()
+	for R.Rows.Next() {
+		resultStr := mType.GetRowResult(R)
+		reflect.Indirect(reflect.ValueOf(p)).Set(reflect.Indirect(reflect.ValueOf(resultStr)))
+		break
 	}
 
+	mCheckError(R.Rows.Err())
 	return nil
-}
-*/
-
-type reflectSlice struct {
-	v reflect.Value
 }
 
 func (s *Searcher) Get(mType *AllRows, p interface{}, sqlLine string, values ...[]interface{}) error {
+	defer func() { s.IsOneRec = false }()
 
-	s.PreInit(mType)
-
+	R, err := s._initGet(mType, sqlLine, values...)
+	if err != nil {
+		return err
+	}
+	defer R.Rows.Close()
 	var sliceValue = reflect.Indirect(reflect.ValueOf(p))
-
-	s.LastCols = []string{}
-
-	value := []interface{}{}
-	if len(values) > 0 {
-		value = values[0]
-	}
-
-	if s.log {
-		log.Printf("dbsearch.Get: %s\n", sqlLine)
-		log.Printf("%v\n", values)
-	}
-
-	rows, err := s.db.Query(sqlLine, value...)
-	if err != nil {
-		return err
-	}
-	defer rows.Close()
-
-	cols, err := rows.Columns()
-	if err != nil {
-		return err
-	}
-
-	s.LastCols = cols
-
-	rawResult := make([]interface{}, 0)
-	for i := 0; i < len(cols); i++ {
-		t, find := mType.DBList[cols[i]]
-		if !find {
-			if s.log {
-				log.Fatalf("dbsearch.Get not found column: %s!", cols[i])
-			}
-			return fmt.Errorf("dbsearch.Get not found column: %s!", cols[i])
-		}
-
-		switch t.Type {
-		case "[]date", "[]time", "[]timestamp":
-			datetime := make([]time.Time, 0)
-			//datetime := new(*pq.NullTime)
-			rawResult = append(rawResult, &datetime)
-		case "date", "time", "timestamp":
-			datetime := new(*time.Time)
-			//datetime := new(*pq.NullTime)
-			rawResult = append(rawResult, datetime)
-		case "int", "bigint", "smallint", "integer", "serial", "bigserial":
-			rawResult = append(rawResult, new(int))
-		case "real", "double", "numeric", "decimal", "money":
-			rawResult = append(rawResult, new(float64))
-		case "text", "varchar", "char", "bool":
-			rawResult = append(rawResult, new(string))
-		case "[]text", "[]varchar", "[]char", "[]bool",
-			"[]real", "[]double", "[]numeric", "[]decimal", "[]money",
-			"[]int", "[]bigint", "[]smallint", "[]integer":
-			rawResult = append(rawResult, make([]byte, 0))
-		case "json", "jsonb":
-			rawResult = append(rawResult, make([]byte, 0))
-		default:
-			rawResult = append(rawResult, make([]byte, 0))
-		}
-	}
-
-	dest := make([]interface{}, len(cols)) // A temporary interface{} slice
-	for i, _ := range rawResult {
-		dest[i] = &rawResult[i] // Put pointers to each string in the interface slice
-	}
-
-	for rows.Next() {
-		mCheckError(rows.Scan(dest...))
-
-		resultDB := map[string]interface{}{}
-		for i, raw := range rawResult {
-			resultDB[mType.DBList[cols[i]].Name] = raw
-		}
-
-		resultStr := reflect.New(mType.SType).Interface()
-		mCheckError(convert(mType.List, "", resultDB, resultStr))
+	for R.Rows.Next() {
+		resultStr := mType.GetRowResult(R)
 		sliceValue.Set(reflect.Append(sliceValue, reflect.Indirect(reflect.ValueOf(resultStr))))
+		if s.IsOneRec {
+			break
+		}
 	}
 
-	mCheckError(rows.Err())
-
+	mCheckError(R.Rows.Err())
 	return nil
 }
 

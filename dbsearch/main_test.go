@@ -1,6 +1,7 @@
 package dbsearch
 
 import (
+	"log"
 	"reflect"
 	"testing"
 )
@@ -16,6 +17,7 @@ func Test_Row(t *testing.T) {
 		_31_float64(t, s)
 		_51_json(t, s)
 		_61_bytea(t, s)
+		_61_getone_func_test(t, s)
 	}
 	//t.Fatal("Success [no error] test")
 }
@@ -288,4 +290,39 @@ func _61_bytea(t *testing.T, s *Searcher) {
 	make_t_table(s, sql_create, sql_cols, sql_vals)
 	p := []bytea_TestPlace{}
 	s.Get(bytea_mTestType, &p, "SELECT * FROM public.test ORDER BY 1")
+}
+
+type getone_TestPlace struct {
+	Col1 int     `db:"col1" type:"int"`
+	Col2 string  `db:"col2" type:"boolean"`
+	Col3 int64   `db:"col3" type:"boolean"`
+	Col4 float32 `db:"col4" type:"boolean"`
+	Col5 float64 `db:"col5" type:"bool"`
+	Col6 bool    `db:"col6" type:"bool"`
+	Col7 string  `db:"col7" type:"bool"`
+	Col8 uint8   `db:"col8" type:"bool"`
+	Col9 int     `db:"col9" type:"bool"`
+}
+
+var getone_mTestType *AllRows = &AllRows{
+	SType: reflect.TypeOf(getone_TestPlace{}),
+}
+
+func _61_getone_func_test(t *testing.T, s *Searcher) {
+
+	sql_create := " CREATE TABLE public.test " +
+		"(col1 int, col2 boolean, col3 boolean, col4 boolean, " +
+		"col5 boolean, col6 boolean, col7 boolean, col8 boolean, col9 boolean ) "
+	sql_cols := "INSERT INTO test(col1, col2, col3, col4, col5, col6, col7, col8, col9 ) "
+	sql_vals := []string{
+		"VALUES (1, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE )",
+		"VALUES (2, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE)",
+		"VALUES (3, null, null, null, null, null, null, null, null )", // check null - nil
+	}
+
+	make_t_table(s, sql_create, sql_cols, sql_vals)
+	p := getone_TestPlace{}
+	s.GetOne(getone_mTestType, &p, "SELECT * FROM public.test ORDER BY 1")
+	log.Printf("\n-----------\nrrrr: %#v\n", p)
+	log.Printf("%s\n", p)
 }
