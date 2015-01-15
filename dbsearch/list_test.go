@@ -11,20 +11,20 @@ func Test_List(t *testing.T) {
 	s := init_test_data(t)
 	// col1, col2, col3, col4, col5, col6, col7
 	if s != nil {
-		mTestType.PreInit(TestPlace{})
 		_01_List_Next(t, s)
 		_02_List_Last(t, s)
 		_03_List_First(t, s)
 		_04_List_Range(t, s)
 		_11_List_Interface(t, s)
 	}
-	//t.Fatal("error test")
+	t.Fatal("error test")
 }
 
 func _000_Get_List(t *testing.T, s *Searcher) (*List, []interface{}) {
 	val := []interface{}{1, 22, 999, 192, 111}
 
-	list, err := s.List(mTestType, "select * from  public.test where col1 IN ($1,$2,$3,$4,$5) ORDER BY col1", val)
+	res := TestPlace{}
+	list, err := s.List(mTestType, &res, "select * from  public.test where col1 IN ($1,$2,$3,$4,$5) ORDER BY col1", val)
 	if err != nil {
 		log.Fatalln(err)
 	}

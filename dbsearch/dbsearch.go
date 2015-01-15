@@ -2,7 +2,7 @@ package dbsearch
 
 import (
 	"database/sql"
-	"encoding/json"
+	//"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/iostrovok/go-dbsearch/dbsearch/sqler"
@@ -11,25 +11,33 @@ import (
 	"log"
 	"reflect"
 	"regexp"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
 )
 
+// http://play.golang.org/p/zmwyIDpIPN
 var m sync.Mutex
 
 //
 type OneRow struct {
-	Name    string
+	Count   int
 	DBName  string
+	FType   string
+	Name    string
+	SetFunc ConvertData
 	Type    string
-	IsArray bool
 }
 
 type AllRows struct {
-	DBList map[string]*OneRow
-	List   map[string]*OneRow
-	Done   bool
+	TableInfo *OneTableInfo
+	DBList    map[string]*OneRow
+	List      map[string]*OneRow
+	Done      bool
+	SType     reflect.Type
+	Table     string
+	Schema    string
 }
 
 type Searcher struct {
@@ -123,7 +131,13 @@ func (s *Searcher) GetCount(sqlLine string, values []interface{}) (int, error) {
 	return count, err
 }
 
-func (s *Searcher) GetOne(mType *AllRows, sqlLine string, values ...[]interface{}) (map[string]interface{}, error) {
+/*
+func (s *Searcher) GetOne(mType *AllRows, p interface{}, sqlLine string, values ...[]interface{}) error {
+	mType.PreInit()
+	return s._GetOne(mType, reflect.ValueOf(p), sqlLine, values...)
+}
+
+func (s *Searcher) _GetOne(mType *AllRows, p reflect.Value, sqlLine string, values ...[]interface{}) error {
 
 	sqlLine += " LIMIT 1 OFFSET 0 "
 
@@ -132,25 +146,31 @@ func (s *Searcher) GetOne(mType *AllRows, sqlLine string, values ...[]interface{
 		value = values[0]
 	}
 
-	list, err := s.Get(mType, sqlLine, value)
-	empty := map[string]interface{}{}
-
+	Out := []TestPlace{}
+	err := s.Get(mType, &Out, sqlLine, value)
 	if err != nil {
-		return empty, err
+		return err
 	}
 
-	if len(list) > 0 {
-		return list[0], nil
+	if len(Out) > 0 {
+		p.Set(reflect.ValueOf(Out[0]))
 	}
 
-	return empty, nil
+	return nil
+}
+*/
+
+type reflectSlice struct {
+	v reflect.Value
 }
 
-func (s *Searcher) Get(mType *AllRows, sqlLine string, values ...[]interface{}) ([]map[string]interface{}, error) {
+func (s *Searcher) Get(mType *AllRows, p interface{}, sqlLine string, values ...[]interface{}) error {
+
+	s.PreInit(mType)
+
+	var sliceValue = reflect.Indirect(reflect.ValueOf(p))
 
 	s.LastCols = []string{}
-
-	Out := make([]map[string]interface{}, 0)
 
 	value := []interface{}{}
 	if len(values) > 0 {
@@ -164,13 +184,13 @@ func (s *Searcher) Get(mType *AllRows, sqlLine string, values ...[]interface{}) 
 
 	rows, err := s.db.Query(sqlLine, value...)
 	if err != nil {
-		return Out, err
+		return err
 	}
 	defer rows.Close()
 
 	cols, err := rows.Columns()
 	if err != nil {
-		return Out, err
+		return err
 	}
 
 	s.LastCols = cols
@@ -179,17 +199,33 @@ func (s *Searcher) Get(mType *AllRows, sqlLine string, values ...[]interface{}) 
 	for i := 0; i < len(cols); i++ {
 		t, find := mType.DBList[cols[i]]
 		if !find {
-			log.Fatalf("dbsearch.Get not found column: %s!", cols[i])
+			if s.log {
+				log.Fatalf("dbsearch.Get not found column: %s!", cols[i])
+			}
+			return fmt.Errorf("dbsearch.Get not found column: %s!", cols[i])
 		}
 
 		switch t.Type {
-		case "datetime", "date", "time":
+		case "[]date", "[]time", "[]timestamp":
+			datetime := make([]time.Time, 0)
+			//datetime := new(*pq.NullTime)
+			rawResult = append(rawResult, &datetime)
+		case "date", "time", "timestamp":
 			datetime := new(*time.Time)
+			//datetime := new(*pq.NullTime)
 			rawResult = append(rawResult, datetime)
-		case "int", "numeric":
+		case "int", "bigint", "smallint", "integer", "serial", "bigserial":
 			rawResult = append(rawResult, new(int))
-		case "bigint":
-			rawResult = append(rawResult, new(int64))
+		case "real", "double", "numeric", "decimal", "money":
+			rawResult = append(rawResult, new(float64))
+		case "text", "varchar", "char", "bool":
+			rawResult = append(rawResult, new(string))
+		case "[]text", "[]varchar", "[]char", "[]bool",
+			"[]real", "[]double", "[]numeric", "[]decimal", "[]money",
+			"[]int", "[]bigint", "[]smallint", "[]integer":
+			rawResult = append(rawResult, make([]byte, 0))
+		case "json", "jsonb":
+			rawResult = append(rawResult, make([]byte, 0))
 		default:
 			rawResult = append(rawResult, make([]byte, 0))
 		}
@@ -201,105 +237,56 @@ func (s *Searcher) Get(mType *AllRows, sqlLine string, values ...[]interface{}) 
 	}
 
 	for rows.Next() {
-		if err := rows.Scan(dest...); err != nil {
-			log.Fatal(err)
-		}
+		mCheckError(rows.Scan(dest...))
 
-		result := map[string]interface{}{}
+		resultDB := map[string]interface{}{}
 		for i, raw := range rawResult {
-			// cols[i] - Column name
-			if s.log {
-				log.Printf("parseArray. %s: %s\n", cols[i], raw)
-			}
-
-			result[cols[i]] = convertType(cols[i], mType, raw)
+			resultDB[mType.DBList[cols[i]].Name] = raw
 		}
 
-		Out = append(Out, result)
+		resultStr := reflect.New(mType.SType).Interface()
+		mCheckError(convert(mType.List, "", resultDB, resultStr))
+		sliceValue.Set(reflect.Append(sliceValue, reflect.Indirect(reflect.ValueOf(resultStr))))
 	}
 
-	if err := rows.Err(); err != nil {
-		log.Fatal(err)
-	}
-
-	return Out, nil
-}
-
-func convertType(Name string, mType *AllRows, raw_in interface{}) interface{} {
-	t, find := mType.DBList[Name]
-	if !find {
-		log.Fatal("Not found!")
-	}
-
-	if raw_in == nil {
-		if t.IsArray {
-			switch t.Type {
-			case "text", "date", "datetime", "time":
-				return []string{}
-			case "bigint", "int64", "int":
-				return []int{}
-			case "real":
-				return []float64{}
-			}
-			return []interface{}{}
-		} else {
-			return nil
-		}
-	}
-
-	switch t.Type {
-	case "text":
-		raw := raw_in.([]byte)
-		if t.IsArray {
-			return parseArray(string(raw))
-		} else {
-			return string(raw)
-		}
-	case "json", "jsonb":
-		line := iutils.AnyToString(raw_in)
-		if line == "" {
-			line = "{}"
-		}
-		raw := []byte(line)
-		var res map[string]interface{}
-		err := json.Unmarshal(raw, &res)
-		if err != nil {
-			log.Fatal("error:", err)
-		}
-		return res
-	case "bigint", "int64", "int":
-		if t.IsArray {
-			return parseIntArray(raw_in)
-		} else {
-			return iutils.AnyToInt(raw_in)
-		}
-	case "real":
-		if t.IsArray {
-			return parseFloat64Array(raw_in)
-		} else {
-			return iutils.AnyToFloat64(raw_in)
-		}
-	case "date", "datetime", "time":
-		return raw_in
-	}
+	mCheckError(rows.Err())
 
 	return nil
 }
 
-func (mT *AllRows) PreInit(p interface{}) {
-	if !mT.Done {
+func mCheckError(err error) {
+	if err != nil {
+		log.Fatal(err)
+	}
+}
+
+func (aRows *AllRows) PreInit() {
+	if !aRows.Done {
 		m.Lock()
-		mT.iPrepare(p)
+		aRows.iPrepare()
 		m.Unlock()
 	}
 }
 
-func (aRows *AllRows) iPrepare(s interface{}) {
-	st := reflect.TypeOf(s)
+func (s *Searcher) PreInit(aRows *AllRows) {
+	if !aRows.Done {
+		m.Lock()
+		aRows.PreinitTable()
+		if aRows.TableInfo != nil {
+			s.GetTableData(aRows.TableInfo)
+		}
+		aRows.iPrepare()
+		m.Unlock()
+	}
+}
+
+func (aRows *AllRows) iPrepare() {
+	st := reflect.TypeOf(reflect.New(aRows.SType).Interface()).Elem()
 
 	aRows.Done = true
 	aRows.List = make(map[string]*OneRow, 0)
 	aRows.DBList = make(map[string]*OneRow, 0)
+
 	Count := 0
 	for true {
 		field := st.Field(Count)
@@ -308,26 +295,75 @@ func (aRows *AllRows) iPrepare(s interface{}) {
 			break
 		}
 
+		fieldName := field.Name
+
+		fieldTypeType := field.Type
+		fieldTypeTypeStr := fmt.Sprintf("%s", fieldTypeType)
+
 		Count++
 
 		dbname := field.Tag.Get("db")
+		if dbname == "" {
+			if a, f := aRows.GetFieldInfo(fieldName); f {
+				dbname = a.Col
+			}
+		}
+		if dbname == "" {
+			aRows.PanicInitConvert("field_name", fieldName, fieldTypeTypeStr)
+		}
+
+		dbtype := field.Tag.Get("type")
+		if dbtype == "" {
+			if a, f := aRows.GetColInfo(dbname); f {
+				dbtype = a.Type
+			}
+		}
+
+		if dbtype == "" {
+			aRows.PanicInitConvert("db_type", fieldName, dbname)
+		}
+
 		oRow := OneRow{
-			Name:    field.Name,
-			DBName:  dbname,
-			Type:    field.Tag.Get("type"),
-			IsArray: false,
+			Name:   fieldName,
+			DBName: dbname,
+			Type:   dbtype,
+			Count:  Count,
+			FType:  field.Type.String(),
 		}
-		if field.Tag.Get("is_array") == "yes" {
-			oRow.IsArray = true
-		}
-		aRows.List[field.Name] = &oRow
+
+		aRows.List[fieldName] = &oRow
 		aRows.DBList[dbname] = &oRow
+
+		var f ConvertData
+		var b bool = false
+
+		if f, b = aRows.convert_func_slice(oRow, fieldTypeTypeStr, fieldName, fieldTypeType); b {
+			oRow.SetFunc = f
+		} else if f, b = aRows.convert_func_no_slice_int(oRow, fieldTypeTypeStr, fieldName, fieldTypeType); b {
+			oRow.SetFunc = f
+		} else if f, b = aRows.convert_func_no_slice_text(oRow, fieldTypeTypeStr, fieldName, fieldTypeType); b {
+			oRow.SetFunc = f
+		} else if f, b = aRows.convert_func_no_slice_num(oRow, fieldTypeTypeStr, fieldName, fieldTypeType); b {
+			oRow.SetFunc = f
+		} else if f, b = aRows.convert_func_no_slice_real(oRow, fieldTypeTypeStr, fieldName, fieldTypeType); b {
+			oRow.SetFunc = f
+		} else if f, b = aRows.convert_func_no_slice_bool(oRow, fieldTypeTypeStr, fieldName, fieldTypeType); b {
+			oRow.SetFunc = f
+		} else if f, b = aRows.convert_func_no_slice_json(oRow, fieldTypeTypeStr, fieldName, fieldTypeType); b {
+			oRow.SetFunc = f
+		} else if f, b = aRows.convert_func_no_slice_bytea(oRow, fieldTypeTypeStr, fieldName, fieldTypeType); b {
+			oRow.SetFunc = f
+		} else if f, b = aRows.convert_func_no_slice_datetime(oRow, fieldTypeTypeStr, fieldName, fieldTypeType); b {
+			oRow.SetFunc = f
+		} else {
+			aRows.PanicConvert(fieldName, oRow.Type, fieldTypeType)
+		}
 	}
 }
 
 func Prepare(s interface{}) *AllRows {
 	aRows := AllRows{}
-	aRows.iPrepare(s)
+	aRows.iPrepare()
 	return &aRows
 }
 
@@ -345,19 +381,108 @@ var (
 	_arrayValue = fmt.Sprintf("\"(%s)+\",", `[^"\\]|\\"|\\\\`)
 	quotedRe    = regexp.MustCompile(_arrayValue)
 
-	noNumbers      = regexp.MustCompile(`[^-0-9]+`)
-	noNumbersStart = regexp.MustCompile(`^[^-0-9]+`)
-	noNumbersEnd   = regexp.MustCompile(`[^0-9]+$`)
+	fromNoNumbersToEnd = regexp.MustCompile(`[^-0-9].*$`)
+
+	noNumbers        = regexp.MustCompile(`[^-0-9]+`)
+	noNumbersPoint   = regexp.MustCompile(`[^-0-9\.]+`)
+	noNumbersStart   = regexp.MustCompile(`^[^-0-9]+`)
+	noNumbersEnd     = regexp.MustCompile(`[^0-9]+$`)
+	noNumbersEndLong = regexp.MustCompile(`[^-0-9]+.*$`)
+
+	intArrayBrace = regexp.MustCompile(`[^-0-9\.\,]+`)
+	intArraySplit = regexp.MustCompile(`,`)
+	intArrayTail  = regexp.MustCompile(`\.[0-9]*`)
 
 	noNumberDots      = regexp.MustCompile(`[^-0-9\.,]+`)
 	noNumberDotsSplit = regexp.MustCompile(`(,|\s+)+`)
 )
 
+func parseBoolArray(s interface{}) []bool {
+	r := parseArray(_AnyToString(s))
+	out := make([]bool, len(r))
+	for i, v := range r {
+		if v == "T" || v == "t" {
+			out[i] = true
+		} else {
+			out[i] = false
+		}
+	}
+	return out
+}
+
+func parseUint64Array(s interface{}) []uint64 {
+	r := parseInt64Array(s)
+	out := make([]uint64, len(r))
+	for i, v := range r {
+		if v < 0 {
+			out[i] = 0
+		} else {
+			out[i] = uint64(v)
+		}
+	}
+	return out
+}
+
+func parseUint8Array(s interface{}) []uint8 {
+	r := parseIntArray(s)
+	out := make([]uint8, len(r))
+	for i, v := range r {
+		if v < 0 {
+			out[i] = 0
+		} else {
+			out[i] = uint8(v)
+		}
+	}
+	return out
+}
+
+func parseUintArray(s interface{}) []uint {
+	r := parseIntArray(s)
+	out := make([]uint, len(r))
+	for i, v := range r {
+		if v < 0 {
+			out[i] = 0
+		} else {
+			out[i] = uint(v)
+		}
+	}
+	return out
+}
+
+func parseInt64Array(s interface{}) []int64 {
+	str := strings.TrimSpace(_AnyToString(s))
+	str = intArrayBrace.ReplaceAllString(str, "")
+	str = intArrayTail.ReplaceAllString(str, "")
+	k := intArraySplit.Split(str, -1)
+
+	out := make([]int64, len(k))
+
+	for i, v := range k {
+		v := intArrayTail.ReplaceAllString(v, "")
+
+		if v == "" {
+			out[i] = 0
+			continue
+		}
+
+		j, err := strconv.Atoi(v)
+		if err != nil {
+			log.Println(err)
+			out[i] = 0
+			continue
+		}
+		out[i] = int64(j)
+	}
+	return out
+}
+
 func parseIntArray(s interface{}) []int {
-	str := strings.TrimSpace(iutils.AnyToString(s))
-	str = noNumbersStart.ReplaceAllString(str, "")
-	str = noNumbersEnd.ReplaceAllString(str, "")
-	return iutils.AnyToIntArray(noNumbers.Split(str, -1))
+	k := parseInt64Array(s)
+	out := make([]int, len(k))
+	for i, v := range k {
+		out[i] = int(v)
+	}
+	return out
 }
 
 func parseFloat64Array(s interface{}) []float64 {
@@ -374,6 +499,19 @@ func parseFloat64Array(s interface{}) []float64 {
 	return out
 }
 
+func parseFloat32Array(s interface{}) []float32 {
+	out := []float32{}
+
+	str := strings.TrimSpace(iutils.AnyToString(s))
+	str = noNumberDots.ReplaceAllString(str, "")
+	list := noNumberDotsSplit.Split(str, -1)
+
+	for _, v := range list {
+		out = append(out, float32(iutils.AnyToFloat64(v)))
+	}
+
+	return out
+}
 func parseArray(line string) []string {
 
 	out := []string{}
@@ -460,4 +598,12 @@ func (s *Searcher) DoCommit(sql string, values []interface{}) {
 	if err != nil {
 		log.Fatal(err)
 	}
+}
+
+func IsNotNilValue(data interface{}, field reflect.Value, fieldTypeType reflect.Type) bool {
+	if data == nil {
+		field.Set(reflect.Zero(fieldTypeType))
+		return false
+	}
+	return true
 }

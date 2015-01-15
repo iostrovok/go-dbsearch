@@ -2,10 +2,11 @@
 GP := $(shell dirname $(realpath $(lastword $(GOPATH))))
 ROOT := $(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))
 XSQL := ${ROOT}/dbsearch/xSql
+MPST := ${ROOT}/dbsearch/mapstructure
 DBS := ${ROOT}/dbsearch
 BIN  := ${ROOT}/bin
 #export GOBIN := ${ROOT}/bin
-export GOPATH := ${GOPATH}:${ROOT}:${XSQL}:${DBS}
+export GOPATH := ${MPST}:${GOPATH}:${ROOT}:${XSQL}:${DBS}
 export PG_USER := postgres
 export PG_PASSWD := 
 export PG_HOST := 127.0.0.1
@@ -48,11 +49,28 @@ test-xsql-cover:
 
 test-list:
 	echo ${GOPATH}
-	go test ./dbsearch/dbsearch.go ./dbsearch/list_test.go ./dbsearch/dbsearch_test.go ./dbsearch/list.go ./dbsearch/row.go
+	go test ./dbsearch/mapstructure.go ./dbsearch/dbsearch.go ./dbsearch/list_test.go ./dbsearch/dbsearch_test.go ./dbsearch/list.go ./dbsearch/row.go
 
 test-row:
 	echo ${GOPATH}
-	go test ./dbsearch/dbsearch.go ./dbsearch/row_test.go ./dbsearch/dbsearch_test.go ./dbsearch/list.go ./dbsearch/row.go
+	go test ./dbsearch/mapstructure.go ./dbsearch/dbsearch.go ./dbsearch/row_test.go ./dbsearch/dbsearch_test.go ./dbsearch/list.go ./dbsearch/row.go
+
+test-f:
+	go test ./dbsearch/field.go ./dbsearch/convert_func.go ./dbsearch/mapstructure.go ./dbsearch/dbsearch.go ./dbsearch/main_test.go ./dbsearch/dbsearch_test.go
+
+test-s:
+	go test ./dbsearch/field.go ./dbsearch/convert_func.go ./dbsearch/mapstructure.go ./dbsearch/dbsearch.go ./dbsearch/slice_test.go ./dbsearch/dbsearch_test.go
+
+test-d:
+	go test ./dbsearch/field.go ./dbsearch/convert_func.go ./dbsearch/mapstructure.go ./dbsearch/dbsearch.go ./dbsearch/date_test.go ./dbsearch/dbsearch_test.go
+
+test-a:
+	go test ./dbsearch/field.go ./dbsearch/convert_func.go ./dbsearch/mapstructure.go ./dbsearch/dbsearch.go ./dbsearch/array_test.go ./dbsearch/dbsearch_test.go
+
+test-l:
+	go test ./dbsearch/field.go ./dbsearch/convert_func.go ./dbsearch/mapstructure.go ./dbsearch/dbsearch.go ./dbsearch/autoload_test.go ./dbsearch/dbsearch_test.go
+
+test-m: test-a test-s test-f test-d test-l
 
 clean:
 	rm ./tmp_fix.out ./tmp.out ./xSql.html

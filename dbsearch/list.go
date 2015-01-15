@@ -6,12 +6,14 @@ type List struct {
 	iter int
 }
 
-func (s *Searcher) List(mType *AllRows, sqlLine string, values ...[]interface{}) (*List, error) {
+func (s *Searcher) List(mType *AllRows, p interface{}, sqlLine string, values ...[]interface{}) (*List, error) {
 
-	list, err := s.Get(mType, sqlLine, values...)
+	err := s.Get(mType, p, sqlLine, values...)
 	if err != nil {
 		return nil, err
 	}
+
+	list := []map[string]interface{}{}
 
 	columns := _cols_to_hash(s.LastCols)
 	out := List{s, []*Row{}, -1}

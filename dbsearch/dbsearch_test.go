@@ -3,31 +3,10 @@ package dbsearch
 import (
 	"log"
 	"os"
+	//"reflect"
 	"testing"
+	//"time"
 )
-
-/*
-type PlaceTest struct {
-	Id         int    `db:"id" type:"int"`
-	ParentId   int    `db:"parent_id" type:"int"`
-	ParentsIds int    `db:"parents_ids" type:"int"`
-	Name       string `db:"name" type:"text"`
-}
-*/
-type TestPlace struct {
-	col1  int     `db:"col1" type:"int"`
-	col2  string  `db:"col2" type:"text"`
-	col3  string  `db:"col3" type:"text"`
-	col4  float64 `db:"col4" type:"real"`
-	col5  string  `db:"col5" type:"datetime"`
-	col6  string  `db:"col6" type:"date"`
-	col7  string  `db:"col7" type:"date"`
-	col8  string  `db:"col8" type:"real" is_array:"yes"`
-	col9  string  `db:"col9" type:"int" is_array:"yes"`
-	col10 string  `db:"col10" type:"text" is_array:"yes"`
-}
-
-var mTestType *AllRows = &AllRows{}
 
 func init_test_data(t *testing.T) *Searcher {
 	login := os.Getenv("PG_USER")
@@ -61,10 +40,7 @@ func init_test_data(t *testing.T) *Searcher {
 	}
 
 	//"host=127.0.0.1 port=5432 user=smarttable password=smarttable dbname=smarttable sslmode=disable"
-
 	dsn := "host=" + host + " port=" + port + usr + " dbname=" + dbname + " sslmode=" + sslmode
-
-	log.Println(dsn)
 
 	dbh, err := DBI(2, dsn, true)
 	if err != nil {
@@ -74,24 +50,35 @@ func init_test_data(t *testing.T) *Searcher {
 	dbh.Do("DROP TABLE IF EXISTS public.test")
 
 	sql_create := " CREATE TABLE public.test (col1 int, col2 character varying(255), " +
-		" col3 text, col4 real, col5 timestamp, " +
-		" col6 date, col7 time, col8 real[], col9 int[], col10 text[] ) "
-	dbh.Do(sql_create)
+		" col3 text, col4 real, col5 real[], col6 int[], col7 text[], col8 text, col9 json, col10 json, col11 timestamp, col12 date, col13 time ) "
 
-	sql_cols := "INSERT INTO test(col1, col2, col3, col4, col5, col6, col7, col8, col9, col10) "
+	time_line := "'2013-01-01 23:23:23', '2013-01-01', '23:23:23'" // timestamp, date, time, interval
+
+	json_one := "'{\"one\":1,\"list\":[1,2,3,4,5]}'"
+	json_line := json_one + ", " + json_one + "::json, " + json_one + "::json, " + time_line
+
+	sql_cols := "INSERT INTO test(col1, col2, col3, col4, col5, col6, col7, col8, col9, col10, col11, col12, col13) "
 	sql_vals := []string{
-		"VALUES (1,   'John',  'Lennon',   9.12313,  '1945-01-01 00:00:00', '1945-01-01', '00:00:00', '{3.56, 3.45}'::real[], '{10,20,30,40,50}'::int[], '{one,two,three,four}'::text[])",
-		"VALUES (22,  'Telok', 'Macar',    -9.12313, '1812-12-23 06:15:15', '1812-12-23', '06:15:15', '{-3.56, -3.45}'::real[], '{20}'::int[], '{one}'::text[])",
-		"VALUES (999, 'Harr',  'Jordjjj',  +9.12313, '1763-05-28 12:30:30', '1763-05-28', '12:30:30', '{3.56, 3.45}'::real[], '{30}'::int[], '{one}'::text[])",
-		"VALUES (192, 'Mart',  'Smart',    -9.12313, '0454-06-02 18:45:45', '0454-06-02', '18:45:45', '{-3.56, -3.45}'::real[], '{40}'::int[], '{one}'::text[])",
-		"VALUES (111, 'Storm', 'Tropical', 9.12313,  '1001-11-02 23:59:59', '1001-12-31', '18:29:30', '{3.56, 3.45}'::real[], '{50}'::int[], '{one}'::text[])",
+		"VALUES (1,   'John',  'Lennon',   9.12313,  '{3.56, 3.45}'::real[], '{10,20,30,40,50}'::int[], '{one,two,three,four}'::text[], " + json_line + ")",
+		"VALUES (22,  'Telok', 'Macar',    -9.12313, '{-3.56, -3.45}'::real[], '{20}'::int[], '{one}'::text[], " + json_line + ")",
+		"VALUES (999, 'Harr',  'Jordjjj',  +9.12313, '{3.56, 3.45}'::real[], '{30}'::int[], '{one}'::text[], " + json_line + ")",
+		"VALUES (192, 'Mart',  'Smart',    -9.12313, '{-3.56, -3.45}'::real[], '{40}'::int[], '{one}'::text[], " + json_line + ")",
+		"VALUES (111, 'Storm', 'Tropical', 9.12313,  '{3.56, 3.45}'::real[], '{50}'::int[], '{one}'::text[], " + json_line + ")",
 	}
+
+	make_t_table(dbh, sql_create, sql_cols, sql_vals)
+
+	return dbh
+}
+
+func make_t_table(dbh *Searcher, sql_create, sql_cols string, sql_vals []string) {
+	dbh.Do("DROP TABLE IF EXISTS public.test")
+
+	dbh.Do(sql_create)
 
 	for _, v := range sql_vals {
 		dbh.Do(sql_cols + v)
 	}
-
-	return dbh
 }
 
 func Test_(t *testing.T) {
