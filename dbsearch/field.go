@@ -104,6 +104,8 @@ func _field_type(data_type string, udt_name string) (string, error) {
 		out = "time"
 	case "timestamptz", "timestamp":
 		out = "timestamp"
+	case "json", "jsonb":
+		out = "json"
 	}
 
 	if data_type == "ARRAY" {

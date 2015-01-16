@@ -35,7 +35,8 @@ func _00_autoload_test(t *testing.T, s *Searcher) {
 		"int_s int, bigint_s bigint, smallint_s smallint, integer_s integer, " +
 		"serial_s serial, bigserial_s bigserial, text_s text, varchar_s varchar(50), char_s char(10), " +
 		"real_s real, double_s double precision, numeric_s numeric, " +
-		"decimal_s decimal, money_s money, boolean_s boolean  "
+		"decimal_s decimal, money_s money, boolean_s boolean,  " +
+		"json_s json "
 
 	autoload_main_f_test_table(s, cols)
 
@@ -57,15 +58,18 @@ func _00_autoload_test(t *testing.T, s *Searcher) {
 	}
 
 	if Table.Rows["text_s"].Type != "text" || Table.Rows["text_s"].Field != "TextS" {
-		t.Fatalf("Error read fields money_s\n")
+		t.Fatalf("Error read fields text_s\n")
 	}
 
 	if Table.Rows["double_precision_list"].Type != "[]double" || Table.Rows["double_precision_list"].Field != "DoublePrecisionList" {
-		t.Fatalf("Error read fields money_s\n")
+		t.Fatalf("Error read fields double_precision_list\n")
 	}
 
 	if Table.Rows["real_s"].Type != "real" || Table.Rows["real_s"].Field != "RealS" {
-		t.Fatalf("Error read fields money_s\n")
+		t.Fatalf("Error read fields real_s\n")
+	}
+	if Table.Rows["json_s"].Type != "json" || Table.Rows["json_s"].Field != "JsonS" {
+		t.Fatalf("Error read fields json_s\n")
 	}
 
 	//	for _, v := range Table.Rows {
