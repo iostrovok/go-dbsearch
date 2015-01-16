@@ -70,7 +70,10 @@ test-a:
 test-l:
 	go test ./dbsearch/field.go ./dbsearch/convert_func.go ./dbsearch/mapstructure.go ./dbsearch/dbsearch.go ./dbsearch/autoload_test.go ./dbsearch/dbsearch_test.go
 
-test-m: test-a test-s test-f test-d test-l
+test-e:
+	go test ./dbsearch/field.go ./dbsearch/convert_func.go ./dbsearch/mapstructure.go ./dbsearch/dbsearch.go ./dbsearch/empty_columns_test.go ./dbsearch/dbsearch_test.go
+
+test-m: test-a test-s test-f test-d test-l test-e
 
 clean:
 	rm ./tmp_fix.out ./tmp.out ./xSql.html

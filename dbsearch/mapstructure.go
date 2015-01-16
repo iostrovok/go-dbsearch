@@ -127,7 +127,7 @@ func (s *Searcher) _initGet(aRows *AllRows, sqlLine string,
 	}
 
 	s.LastCols = cols
-	R, err_rr := aRows.prepare_raw_result(cols)
+	R, err_rr := s.prepare_raw_result(aRows, cols)
 	if err_rr != nil {
 		return nil, err_rr
 	}
@@ -150,6 +150,9 @@ func (aRows *AllRows) GetRowResult(R *GetRowResultStr) interface{} {
 
 	resultDB := map[string]interface{}{}
 	for i, raw := range R.RawResult {
+		if i+1 > len(aRows.DBList) {
+			break
+		}
 		resultDB[aRows.DBList[R.Cols[i]].Name] = raw
 	}
 
@@ -158,12 +161,19 @@ func (aRows *AllRows) GetRowResult(R *GetRowResultStr) interface{} {
 	return resultStr
 }
 
-func (aRows *AllRows) prepare_raw_result(cols []string) (*GetRowResultStr, error) {
+func (s *Searcher) prepare_raw_result(aRows *AllRows, cols []string) (*GetRowResultStr, error) {
+	//(aRows *AllRows)
+	Count := 0
 	rawResult := make([]interface{}, 0)
 	for i := 0; i < len(cols); i++ {
 		t, find := aRows.DBList[cols[i]]
 		if !find {
-			return nil, fmt.Errorf("dbsearch.Get not found column: %s!", cols[i])
+			if s.DieOnColsName {
+				return nil, fmt.Errorf("dbsearch.Get not found column: %s!", cols[i])
+			} else {
+				Count++
+				continue
+			}
 		}
 
 		switch t.Type {
@@ -186,6 +196,12 @@ func (aRows *AllRows) prepare_raw_result(cols []string) (*GetRowResultStr, error
 		default:
 			rawResult = append(rawResult, make([]byte, 0))
 		}
+	}
+
+	for Count > 0 {
+		//return nil, fmt.Errorf("dbsearch.Get not found any columns: %s!", aRows.SType)
+		rawResult = append(rawResult, make([]byte, 0))
+		Count--
 	}
 
 	dest := make([]interface{}, len(cols)) // A temporary interface{} slice

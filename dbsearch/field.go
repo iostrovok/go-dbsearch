@@ -2,6 +2,7 @@ package dbsearch
 
 import (
 	"fmt"
+	"log"
 	"strings"
 	"unicode"
 )
@@ -180,6 +181,10 @@ func (s *Searcher) GetTableData(Table *OneTableInfo) error {
 		}
 
 		Table.Rows[Row.Col] = &Row
+
+		if s.log {
+			log.Printf("GetTableData field: '%s', col: '%s', type: '%s'\n", Row.Field, Row.Col, Row.Type)
+		}
 	}
 
 	if !check {

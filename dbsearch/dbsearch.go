@@ -31,13 +31,14 @@ type OneRow struct {
 }
 
 type AllRows struct {
-	TableInfo *OneTableInfo
-	DBList    map[string]*OneRow
-	List      map[string]*OneRow
-	Done      bool
-	SType     reflect.Type
-	Table     string
-	Schema    string
+	TableInfo     *OneTableInfo
+	DBList        map[string]*OneRow
+	List          map[string]*OneRow
+	Done          bool
+	SType         reflect.Type
+	Table         string
+	Schema        string
+	DieOnColsName bool
 }
 
 type Searcher struct {
@@ -58,8 +59,15 @@ func (s *Searcher) DBH() *sql.DB {
 	return s.db
 }
 
-func (s *Searcher) SetDebug(is_debug ...bool) {
+func (s *Searcher) SetDieOnColsName(is_debug ...bool) {
+	if len(is_debug) > 0 {
+		s.DieOnColsName = is_debug[0]
+	} else {
+		s.DieOnColsName = true
+	}
+}
 
+func (s *Searcher) SetDebug(is_debug ...bool) {
 	if len(is_debug) > 0 {
 		s.log = is_debug[0]
 	} else {
@@ -192,6 +200,7 @@ func (s *Searcher) PreInit(aRows *AllRows) {
 		if aRows.TableInfo != nil {
 			s.GetTableData(aRows.TableInfo)
 		}
+		aRows.DieOnColsName = s.DieOnColsName
 		aRows.iPrepare()
 		m.Unlock()
 	}
@@ -226,7 +235,14 @@ func (aRows *AllRows) iPrepare() {
 			}
 		}
 		if dbname == "" {
-			aRows.PanicInitConvert("field_name", fieldName, fieldTypeTypeStr)
+			if aRows.DieOnColsName {
+				aRows.PanicInitConvert("field_name", fieldName, fieldTypeTypeStr)
+			} else {
+				if VIEW_DEBUG {
+					log.Printf("Warning for %s.%s. Not found field for '%s'\n", aRows.SType, fieldName, fieldTypeTypeStr)
+				}
+				continue
+			}
 		}
 
 		dbtype := field.Tag.Get("type")
@@ -237,7 +253,14 @@ func (aRows *AllRows) iPrepare() {
 		}
 
 		if dbtype == "" {
-			aRows.PanicInitConvert("db_type", fieldName, dbname)
+			if aRows.DieOnColsName {
+				aRows.PanicInitConvert("db_type", fieldName, dbname)
+			} else {
+				if VIEW_DEBUG {
+					log.Printf("Warning for %s.%s. Not found 'db' tag for '%s'\n", aRows.SType, fieldName, fieldTypeTypeStr)
+				}
+				continue
+			}
 		}
 
 		oRow := OneRow{
