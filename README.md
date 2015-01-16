@@ -142,48 +142,6 @@ func main() {
 }
 ```
 
-### Get list of rows ###
-```go
-	import "github.com/iostrovok/go-dbsearch/dbsearch"
-
-	sql := "SELECT * FROM my_table WHERE id > $1 AND name <> $2"
-	values := []interface{10, "murka"}
-
-	list, err := dbh.List( sql, values... )
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	if list.IsEmpty() {
-		log.Println("no found")
-	}
-
-	count := list.Count()
-	log.Printf("Total %d records\n", count)
-
-	i, row := list.Range()
-	for i > -1 { // Or i > -1
-		name := row.Str("name") // str
-		fl := row.Float("avarege") // float64
-		id := row.Int("id") // int
-		mdate := row.Date("date_created") // time
-		mtime := row.Time("time_created") // time
-		mdt := row.DateTime("date_time_created") // time
-		inter := row.Interface() // map[string]interface{}
-		col_names := row.Cols()  // map[]string
-
-		string_slice := row.StrArray("text_array_column") // []string
-		int_slice := row.IntArray("int_array_column")  // []int
-
-		i, row = list.Range()
-	}
-
-
-	// Data for json:
-	json := list.Interface() // []map[string]interface {}
-
-```
-
 ## xSql ##
 ### Import ###
 ```go
