@@ -115,7 +115,7 @@ func _field_type(data_type string, udt_name string) (string, error) {
 
 	/* ===> Don't support now */
 	/*
-	 "bit", "box", "bytea", "cidr", "circle", "inet", "interval", "line",
+	 "bit", "box", "cidr", "circle", "inet", "interval", "line",
 	 "lseg", "macaddr", "path", "point", "polygon", "tsquery", "tsvector", "txid_snapshot",
 	 "uuid", "varbit", "xml",
 	*/
@@ -134,12 +134,6 @@ func (s *Searcher) GetTableData(Table *OneTableInfo) error {
 	}
 
 	Table.Rows = map[string]*OneRowInfo{}
-
-	//sql := " SELECT column_name, column_default, is_nullable, data_type " +
-	//" FROM information_schema.columns WHERE table_schema = $1 AND table_name = $2"
-	//sql := " SELECT column_name, column_default, is_nullable, data_type, character_maximum_length, udt_name " +
-	//	" FROM information_schema.columns " +
-	//	"WHERE table_schema = $1 AND table_name = $2"
 
 	vals := []interface{}{strings.ToLower(Table.Schema), strings.ToLower(Table.Table)}
 	sql := "SELECT column_name, column_default, is_nullable, " +
