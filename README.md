@@ -50,6 +50,8 @@ or
 ```
 
 ### Quick start ###
+
+#### SQL ####
 ```sql
 
 drop table if exists public.person;
@@ -81,7 +83,7 @@ VALUES ( true, '1942-06-18', 'Paul', 'McCartney',
 '{1,2,5,3}');
 
 ```
-
+#### GO ####
 ```go
 package main
 
