@@ -11,6 +11,21 @@ import (
 	"time"
 )
 
+// construct a regexp to extract values:
+var (
+	findArrayReg  = regexp.MustCompile(`^\[\].+`)
+	findNoTimeReg = regexp.MustCompile(`^(date|time|timestamp)$`)
+
+	findBoolReg    = regexp.MustCompile(`^(boolean|bool)$`)
+	findByteaReg   = regexp.MustCompile(`^(bytea)$`)
+	findIntReg     = regexp.MustCompile(`^(bigint|smallint|int|integer|serial|bigserial|smallserial)$`)
+	findJsonReg    = regexp.MustCompile(`^(json|jsonb)$`)
+	findNumericReg = regexp.MustCompile(`^(numeric|decimal|money)$`)
+	findRealReg    = regexp.MustCompile(`^(real|double)$`)
+	findTextReg    = regexp.MustCompile(`^(varchar|char|text)$`)
+	findTimeReg    = regexp.MustCompile(`^(date|time|timestamp)$`)
+)
+
 // An action transitions stochastically to a resulting score.
 type ConvertData func(data interface{}, val reflect.Value) error
 
@@ -39,19 +54,55 @@ func (aRows *AllRows) PanicConvert(fieldName string, Type string, fTType reflect
 	log.Panicf("Error for %s.%s convert from '%s' to '%s'\n", aRows.SType, fieldName, Type, fTType)
 }
 
+/* Select function */
+func (aRows *AllRows) convert_select(oRow OneRow, fStrType, fieldName string,
+	fTType reflect.Type) ConvertData {
+	if f, b := aRows.convert_func_slice(oRow, fStrType, fieldName, fTType); b {
+		return f
+	}
+	if f, b := aRows.convert_func_no_slice_int(oRow, fStrType, fieldName, fTType); b {
+		return f
+	}
+	if f, b := aRows.convert_func_no_slice_text(oRow, fStrType, fieldName, fTType); b {
+		return f
+	}
+	if f, b := aRows.convert_func_no_slice_num(oRow, fStrType, fieldName, fTType); b {
+		return f
+	}
+	if f, b := aRows.convert_func_no_slice_real(oRow, fStrType, fieldName, fTType); b {
+		return f
+	}
+	if f, b := aRows.convert_func_no_slice_bool(oRow, fStrType, fieldName, fTType); b {
+		return f
+	}
+	if f, b := aRows.convert_func_no_slice_json(oRow, fStrType, fieldName, fTType); b {
+		return f
+	}
+	if f, b := aRows.convert_func_no_slice_bytea(oRow, fStrType, fieldName, fTType); b {
+		return f
+	}
+	if f, b := aRows.convert_func_no_slice_datetime(oRow, fStrType, fieldName, fTType); b {
+		return f
+	}
+	aRows.PanicConvert(fieldName, oRow.Type, fTType)
+	return nil
+}
+
+func IsNotNilValue(data interface{}, field reflect.Value, fieldTypeType reflect.Type) bool {
+	if data == nil {
+		field.Set(reflect.Zero(fieldTypeType))
+		return false
+	}
+	return true
+}
+
 /* IS ARRAYS or SLICE */
 func (aRows *AllRows) convert_func_slice(oRow OneRow, fStrType, fieldName string,
 	fTType reflect.Type) (ConvertData, bool) {
 
 	var fn ConvertData
 
-	sss := reflect.ValueOf("convert_func_slice").Interface()
-	oRow.DebugV(fieldName, fTType, sss)
-
-	findArray := regexp.MustCompile(`^\[\].+`)
-	find := regexp.MustCompile(`^(date|time|timestamp)$`)
-
-	if findArray.FindString(oRow.Type) == "" || find.FindString(oRow.Type) != "" {
+	if findArrayReg.FindString(oRow.Type) == "" || findNoTimeReg.FindString(oRow.Type) != "" {
 		return fn, false
 	}
 
@@ -234,8 +285,8 @@ func (aRows *AllRows) convert_func_slice(oRow OneRow, fStrType, fieldName string
 func (aRows *AllRows) convert_func_no_slice_int(oRow OneRow, fStrType, fieldName string,
 	fTType reflect.Type) (ConvertData, bool) {
 	var fn ConvertData
-	find := regexp.MustCompile(`^(bigint|smallint|int|integer|serial|bigserial|smallserial)$`)
-	if find.FindString(oRow.Type) == "" {
+
+	if findIntReg.FindString(oRow.Type) == "" {
 		return fn, false
 	}
 
@@ -325,9 +376,9 @@ func (aRows *AllRows) convert_func_no_slice_int(oRow OneRow, fStrType, fieldName
 
 func (aRows *AllRows) convert_func_no_slice_text(oRow OneRow, fStrType, fieldName string,
 	fTType reflect.Type) (ConvertData, bool) {
+
 	var fn ConvertData
-	find := regexp.MustCompile(`^(varchar|char|text)$`)
-	if find.FindString(oRow.Type) == "" {
+	if findTextReg.FindString(oRow.Type) == "" {
 		return fn, false
 	}
 
@@ -431,9 +482,9 @@ func (aRows *AllRows) convert_func_no_slice_text(oRow OneRow, fStrType, fieldNam
 
 func (aRows *AllRows) convert_func_no_slice_num(oRow OneRow, fStrType, fieldName string,
 	fTType reflect.Type) (ConvertData, bool) {
+
 	var fn ConvertData
-	find := regexp.MustCompile(`^(numeric|decimal|money)$`)
-	if find.FindString(oRow.Type) == "" {
+	if findNumericReg.FindString(oRow.Type) == "" {
 		return fn, false
 	}
 
@@ -524,9 +575,9 @@ func (aRows *AllRows) convert_func_no_slice_num(oRow OneRow, fStrType, fieldName
 
 func (aRows *AllRows) convert_func_no_slice_real(oRow OneRow, fStrType, fieldName string,
 	fTType reflect.Type) (ConvertData, bool) {
+
 	var fn ConvertData
-	find := regexp.MustCompile(`^(real|double)$`)
-	if find.FindString(oRow.Type) == "" {
+	if findRealReg.FindString(oRow.Type) == "" {
 		return fn, false
 	}
 
@@ -595,9 +646,9 @@ func (aRows *AllRows) convert_func_no_slice_real(oRow OneRow, fStrType, fieldNam
 
 func (aRows *AllRows) convert_func_no_slice_bool(oRow OneRow, fStrType, fieldName string,
 	fTType reflect.Type) (ConvertData, bool) {
+
 	var fn ConvertData
-	find := regexp.MustCompile(`^(boolean|bool)$`)
-	if find.FindString(oRow.Type) == "" {
+	if findBoolReg.FindString(oRow.Type) == "" {
 		return fn, false
 	}
 
@@ -770,9 +821,9 @@ func (aRows *AllRows) convert_func_no_slice_bool(oRow OneRow, fStrType, fieldNam
 
 func (aRows *AllRows) convert_func_no_slice_json(oRow OneRow, fStrType, fieldName string,
 	fTType reflect.Type) (ConvertData, bool) {
+
 	var fn ConvertData
-	find := regexp.MustCompile(`^(json|jsonb)$`)
-	if find.FindString(oRow.Type) == "" {
+	if findJsonReg.FindString(oRow.Type) == "" {
 		return fn, false
 	}
 
@@ -813,9 +864,9 @@ func (aRows *AllRows) convert_func_no_slice_json(oRow OneRow, fStrType, fieldNam
 
 func (aRows *AllRows) convert_func_no_slice_bytea(oRow OneRow, fStrType, fieldName string,
 	fTType reflect.Type) (ConvertData, bool) {
+
 	var fn ConvertData
-	find := regexp.MustCompile(`^(bytea)$`)
-	if find.FindString(oRow.Type) == "" {
+	if findByteaReg.FindString(oRow.Type) == "" {
 		return fn, false
 	}
 
@@ -864,8 +915,7 @@ func (aRows *AllRows) convert_func_no_slice_datetime(oRow OneRow, fStrType, fiel
 	fTType reflect.Type) (ConvertData, bool) {
 
 	var fn ConvertData
-	find := regexp.MustCompile(`^(date|time|timestamp)$`)
-	if find.FindString(oRow.Type) == "" {
+	if findTimeReg.FindString(oRow.Type) == "" {
 		return fn, false
 	}
 

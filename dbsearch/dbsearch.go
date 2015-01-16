@@ -251,30 +251,7 @@ func (aRows *AllRows) iPrepare() {
 		aRows.List[fieldName] = &oRow
 		aRows.DBList[dbname] = &oRow
 
-		var f ConvertData
-		var b bool = false
-
-		if f, b = aRows.convert_func_slice(oRow, fieldTypeTypeStr, fieldName, fieldTypeType); b {
-			oRow.SetFunc = f
-		} else if f, b = aRows.convert_func_no_slice_int(oRow, fieldTypeTypeStr, fieldName, fieldTypeType); b {
-			oRow.SetFunc = f
-		} else if f, b = aRows.convert_func_no_slice_text(oRow, fieldTypeTypeStr, fieldName, fieldTypeType); b {
-			oRow.SetFunc = f
-		} else if f, b = aRows.convert_func_no_slice_num(oRow, fieldTypeTypeStr, fieldName, fieldTypeType); b {
-			oRow.SetFunc = f
-		} else if f, b = aRows.convert_func_no_slice_real(oRow, fieldTypeTypeStr, fieldName, fieldTypeType); b {
-			oRow.SetFunc = f
-		} else if f, b = aRows.convert_func_no_slice_bool(oRow, fieldTypeTypeStr, fieldName, fieldTypeType); b {
-			oRow.SetFunc = f
-		} else if f, b = aRows.convert_func_no_slice_json(oRow, fieldTypeTypeStr, fieldName, fieldTypeType); b {
-			oRow.SetFunc = f
-		} else if f, b = aRows.convert_func_no_slice_bytea(oRow, fieldTypeTypeStr, fieldName, fieldTypeType); b {
-			oRow.SetFunc = f
-		} else if f, b = aRows.convert_func_no_slice_datetime(oRow, fieldTypeTypeStr, fieldName, fieldTypeType); b {
-			oRow.SetFunc = f
-		} else {
-			aRows.PanicConvert(fieldName, oRow.Type, fieldTypeType)
-		}
+		oRow.SetFunc = aRows.convert_select(oRow, fieldTypeTypeStr, fieldName, fieldTypeType)
 	}
 }
 
@@ -297,14 +274,6 @@ var (
 	unquotedRe  = regexp.MustCompile(`([^",\\{}\s]|NULL)+,`)
 	_arrayValue = fmt.Sprintf("\"(%s)+\",", `[^"\\]|\\"|\\\\`)
 	quotedRe    = regexp.MustCompile(_arrayValue)
-
-	fromNoNumbersToEnd = regexp.MustCompile(`[^-0-9].*$`)
-
-	noNumbers        = regexp.MustCompile(`[^-0-9]+`)
-	noNumbersPoint   = regexp.MustCompile(`[^-0-9\.]+`)
-	noNumbersStart   = regexp.MustCompile(`^[^-0-9]+`)
-	noNumbersEnd     = regexp.MustCompile(`[^0-9]+$`)
-	noNumbersEndLong = regexp.MustCompile(`[^-0-9]+.*$`)
 
 	intArrayBrace = regexp.MustCompile(`[^-0-9\.\,]+`)
 	intArraySplit = regexp.MustCompile(`,`)
@@ -490,7 +459,7 @@ func (s *Searcher) Delete(table string, data_where map[string]interface{}) {
 	s.DoCommit(sql, values)
 }
 
-func (s *Searcher) Update(table string, data_where map[string]interface{}, data_update map[string]interface{}) {
+func (s *Searcher) Update(table string, data_where, data_update map[string]interface{}) {
 	sql, values := sqler.UpdateLine(table, data_update, data_where)
 	s.DoCommit(sql, values)
 }
@@ -515,12 +484,4 @@ func (s *Searcher) DoCommit(sql string, values []interface{}) {
 	if err != nil {
 		log.Fatal(err)
 	}
-}
-
-func IsNotNilValue(data interface{}, field reflect.Value, fieldTypeType reflect.Type) bool {
-	if data == nil {
-		field.Set(reflect.Zero(fieldTypeType))
-		return false
-	}
-	return true
 }
