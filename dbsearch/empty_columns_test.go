@@ -10,6 +10,7 @@ func Test_EmptyLoad(t *testing.T) {
 	s.SetDebug(false)
 	if s != nil {
 		_01_empty_load(t, s)
+		_02_empty_load(t, s)
 	}
 	//t.Fatal("Success [no error] test")
 }
@@ -54,4 +55,24 @@ func _01_empty_load(t *testing.T, s *Searcher) {
 	p := []empty_load_TestPlace{}
 	s.SetDieOnColsName(false)
 	s.Get(empty_load_mTestType, &p, "SELECT * FROM public.test ORDER BY 1")
+}
+
+type empty_load_02_TestPlace struct {
+	Col1 int
+	Col2 int
+	Col5 int
+	Col6 int
+	Col7 string
+}
+
+var empty_load_02_mTestType *AllRows = &AllRows{
+	Table: "test",
+	SType: reflect.TypeOf(empty_load_02_TestPlace{}),
+}
+
+func _02_empty_load(t *testing.T, s *Searcher) {
+	empty_load_f_test_table(s)
+	p := []empty_load_02_TestPlace{}
+	s.SetDieOnColsName(false)
+	s.Get(empty_load_02_mTestType, &p, "SELECT * FROM public.test ORDER BY 1")
 }

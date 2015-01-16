@@ -34,6 +34,7 @@ type AllRows struct {
 	TableInfo     *OneTableInfo
 	DBList        map[string]*OneRow
 	List          map[string]*OneRow
+	SkipList      map[int]bool
 	Done          bool
 	SType         reflect.Type
 	Table         string

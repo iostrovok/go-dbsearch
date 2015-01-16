@@ -150,10 +150,9 @@ func (aRows *AllRows) GetRowResult(R *GetRowResultStr) interface{} {
 
 	resultDB := map[string]interface{}{}
 	for i, raw := range R.RawResult {
-		if i+1 > len(aRows.DBList) {
-			break
+		if aRows.SkipList[i] {
+			resultDB[aRows.DBList[R.Cols[i]].Name] = raw
 		}
-		resultDB[aRows.DBList[R.Cols[i]].Name] = raw
 	}
 
 	resultStr := reflect.New(aRows.SType).Interface()
@@ -162,19 +161,21 @@ func (aRows *AllRows) GetRowResult(R *GetRowResultStr) interface{} {
 }
 
 func (s *Searcher) prepare_raw_result(aRows *AllRows, cols []string) (*GetRowResultStr, error) {
-	//(aRows *AllRows)
-	Count := 0
+
+	aRows.SkipList = map[int]bool{}
 	rawResult := make([]interface{}, 0)
 	for i := 0; i < len(cols); i++ {
 		t, find := aRows.DBList[cols[i]]
 		if !find {
+			aRows.SkipList[i] = false
 			if s.DieOnColsName {
 				return nil, fmt.Errorf("dbsearch.Get not found column: %s!", cols[i])
 			} else {
-				Count++
+				rawResult = append(rawResult, make([]byte, 0))
 				continue
 			}
 		}
+		aRows.SkipList[i] = true
 
 		switch t.Type {
 		case "date", "time", "timestamp":
@@ -196,12 +197,6 @@ func (s *Searcher) prepare_raw_result(aRows *AllRows, cols []string) (*GetRowRes
 		default:
 			rawResult = append(rawResult, make([]byte, 0))
 		}
-	}
-
-	for Count > 0 {
-		//return nil, fmt.Errorf("dbsearch.Get not found any columns: %s!", aRows.SType)
-		rawResult = append(rawResult, make([]byte, 0))
-		Count--
 	}
 
 	dest := make([]interface{}, len(cols)) // A temporary interface{} slice
