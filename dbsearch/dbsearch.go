@@ -180,6 +180,34 @@ func (s *Searcher) Get(mType *AllRows, p interface{}, sqlLine string, values ...
 	return nil
 }
 
+func (s *Searcher) GetFace(mType *AllRows, sqlLine string,
+	values ...[]interface{}) ([]map[string]interface{}, error) {
+	defer func() { s.IsOneRec = false }()
+
+	out := []map[string]interface{}{}
+
+	R, err := s._initGet(mType, sqlLine, values...)
+	if err != nil {
+		return out, err
+	}
+	defer R.Rows.Close()
+
+	for R.Rows.Next() {
+		resultStr, err := mType.GetRowResultFace(R)
+		if err != nil {
+			return nil, err
+		}
+
+		out = append(out, resultStr)
+		if s.IsOneRec {
+			break
+		}
+	}
+
+	mCheckError(R.Rows.Err())
+	return out, nil
+}
+
 func mCheckError(err error) {
 	if err != nil {
 		log.Fatal(err)

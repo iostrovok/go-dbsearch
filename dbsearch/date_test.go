@@ -18,6 +18,7 @@ func Test_DateTime(t *testing.T) {
 		_41_datetime_uint(t, s)
 		_51_datetime_map(t, s)
 		_61_datetime_intlist(t, s)
+		_71_datetime_interface(t, s)
 	}
 	//t.Fatal("Success [no error] test")
 }
@@ -379,4 +380,58 @@ func _61_datetime_intlist(t *testing.T, s *Searcher) {
 	if p[0].Col6[3] != 1 || p[0].Col6[4] != 22 || p[0].Col6[5] != 12 {
 		t.Fatal("Error _61_datetime_intlist.Col6 [b]; []int <= date [timestamp without time zone]")
 	}
+}
+
+/*
+
+Interface
+
+*/
+
+type date_interface_TestPlace struct {
+	Col1 int
+	Col2 time.Time
+	Col3 time.Time
+	Col4 time.Time
+	Col5 time.Time `type:"date"`
+	Col6 time.Time
+}
+
+var date_interface_mTestType *AllRows = &AllRows{
+	Table: "test",
+	SType: reflect.TypeOf(date_interface_TestPlace{}),
+}
+
+func _71_check_datetime_interface(t *testing.T, p interface{}, c time.Time, mes string) {
+	switch p.(type) {
+	case time.Time:
+		if !p.(time.Time).Equal(c) {
+			t.Fatal("Error convert. " + mes)
+		}
+	default:
+		if !p.(time.Time).Equal(c) {
+			t.Fatal("Error type. " + mes)
+		}
+	}
+}
+
+func _71_datetime_interface(t *testing.T, s *Searcher) {
+	loc, _ := time.LoadLocation(TEST_TIME_ZONE)
+	datetime_main_f_test_table(s)
+	p, err := s.GetFace(date_interface_mTestType, "SELECT * FROM public.test ORDER BY 1")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	c2 := time.Date(2014, time.November, 12, 0, 0, 0, 0, time.UTC)
+	c3 := time.Date(0, time.January, 1, 1, 22, 12, 0, time.UTC)
+	c4 := time.Date(2014, time.November, 12, 1, 22, 12, 0, time.UTC)
+	c5 := time.Date(2014, time.November, 12, 0, 0, 0, 0, loc)
+	c6 := time.Date(2014, time.November, 12, 1, 22, 12, 0, loc)
+
+	_71_check_datetime_interface(t, p[0]["col2"], c2, "_71_datetime_interface.Col2; time <= date [timestamp without time zone]")
+	_71_check_datetime_interface(t, p[0]["col3"], c3, "_71_datetime_interface.Col3; time <= datetime [timestamp without time zone]")
+	_71_check_datetime_interface(t, p[0]["col4"], c4, "_71_datetime_interface.Col4; time <= time [timestamp without time zone]")
+	_71_check_datetime_interface(t, p[0]["col5"], c5, "_71_datetime_interface.Col5; time <= date [timestamp with time zone]")
+	_71_check_datetime_interface(t, p[0]["col6"], c6, "_71_datetime_interface.Col6; time <= timestamp [timestamp with time zone]")
 }

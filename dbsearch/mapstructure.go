@@ -144,6 +144,43 @@ type GetRowResultStr struct {
 	RawResult []interface{}
 }
 
+func (aRows *AllRows) GetRowResultFace(R *GetRowResultStr) (map[string]interface{}, error) {
+
+	mCheckError(R.Rows.Scan(R.Dest...))
+
+	val := reflect.Indirect(reflect.New(aRows.SType).Elem())
+	out := map[string]interface{}{}
+	for i, raw := range R.RawResult {
+		if !aRows.SkipList[i] {
+			continue
+		}
+
+		if len(R.Cols) < i-1 {
+			return nil, fmt.Errorf("No setup\n")
+		}
+
+		DBName := R.Cols[i]
+		el := aRows.DBList[DBName]
+
+		fieldName := el.Name
+		rawMapVal := reflect.ValueOf(raw)
+
+		field := val.FieldByName(fieldName)
+
+		if rawMapVal == reflect.Zero(reflect.TypeOf(rawMapVal)).Interface() {
+			field.Set(reflect.Zero(field.Type()))
+		} else {
+			if err := el.SetFunc(rawMapVal.Interface(), field); err != nil {
+				return nil, err
+			}
+		}
+
+		out[el.DBName] = field.Interface()
+	}
+
+	return out, nil
+}
+
 func (aRows *AllRows) GetRowResult(R *GetRowResultStr) interface{} {
 
 	mCheckError(R.Rows.Scan(R.Dest...))
