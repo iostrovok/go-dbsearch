@@ -49,72 +49,99 @@ or
 	dbh := dbsearch.SetDBI( db )
 ```
 
-### Get single row ###
-```go
-	import "github.com/iostrovok/go-dbsearch/dbsearch"
+### Quick start ###
 
-	sql := "SELECT * FROM my_table WHERE id = $1 "
-	values := []interface{10}
+#### SQL ####
+```sql
 
-	row, err := dbh.One( sql, values... )
-	if err != nil {
-		log.Fatal(err)
-	}
+drop table if exists public.person;
 
-	if row.IsEmpty() {
-		log.Println("no found")
-	}
+create table public.person ( 
+		id serial, 
+		active boolean default false,
+		created timestamp default now(),
+		changed timestamp default now(),
+		dob date,
+		fname varchar(50), 
+		lname varchar(50), 
+		children_names varchar(100)[], 
+		cv text,
+		disks json,
+		count_refs int[] default '{0}'
+);
 
-	name := row.Str("name") // str
-	fl := row.Float("avarege") // float64
-	id := row.Int("id") // int
-	mdate := row.Date("date_created") // time
-	mtime := row.Time("time_created") // time
-	mdt := row.DateTime("date_time_created") // time
-	inter := row.Interface() // map[string]interface{}
-	col_names := row.Cols()  // map[]string
+INSERT INTO public.person ( active, dob, fname, lname, children_names, cv, disks, count_refs  ) 
+VALUES ( true, '1942-06-18', 'Paul', 'McCartney', 
+'{"Stella McCartney","James McCartney","Mary McCartney","Heather McCartney","Beatrice McCartney"}', 
+'Sir James Paul McCartney MBE is ... Wikipedia', 
+'{"disks":[{"title":"McCartney","year":1970},{"title":"Ram","year":1971},{"title":"Wild Life","year":1971}]}'::json,
+'{1,2,5,3}'),
+( false, '1940-10-09', 'John', 'Lennon', 
+'{"Sean Lennon", "Julian Lennon"}', 
+'John Ono Lennon, MBE ... Wikipedia', 
+'{"disks":[{"title":"Imagine","year":1971},{"title":"Some Time in New York City","year":1972},{"title":"Mind Games","year":1973}]}'::json,
+'{1,2,5,3}');
+
 ```
-
-### Get list of rows ###
+#### GO ####
 ```go
-	import "github.com/iostrovok/go-dbsearch/dbsearch"
+package main
 
-	sql := "SELECT * FROM my_table WHERE id > $1 AND name <> $2"
-	values := []interface{10, "murka"}
+import "github.com/iostrovok/go-dbsearch/dbsearch"
+import "fmt"
+import "time"
+import "reflect"
+import "log"
 
-	list, err := dbh.List( sql, values... )
+type Singer struct {
+	Id     int
+	Active bool
+	//Created       time.Time // Skip. DBA's Inner fields %)
+	//Changed       time.Time // Skip. DBA's Inner fields %)
+	Dob           time.Time
+	Fname         string
+	Lname         string
+	ChildrenNames []string
+	Cv            string
+	Disks         map[string]interface{}
+	CountRefs     []int
+}
+
+var mSinger *dbsearch.AllRows = &dbsearch.AllRows{
+	Table:  "person",
+	Schema: "public",
+	SType:  reflect.TypeOf(Singer{}),
+}
+
+func main() {
+	dbh, err := dbsearch.DBI(10, "host=127.0.0.1 port=5432 user=postgres dbname=pqgotest sslmode=disable", false)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	if list.IsEmpty() {
-		log.Println("no found")
+	sql := "SELECT * FROM public.person WHERE lname = $1 "
+	values := []interface{}{"Lennon"}
+
+	Lennon := Singer{}
+	if err := dbh.GetOne(mSinger, &Lennon, sql, values); err != nil {
+		log.Fatal(err)
 	}
 
-	count := list.Count()
-	log.Printf("Total %d records\n", count)
-
-	i, row := list.Range()
-	for i > -1 { // Or i > -1
-		name := row.Str("name") // str
-		fl := row.Float("avarege") // float64
-		id := row.Int("id") // int
-		mdate := row.Date("date_created") // time
-		mtime := row.Time("time_created") // time
-		mdt := row.DateTime("date_time_created") // time
-		inter := row.Interface() // map[string]interface{}
-		col_names := row.Cols()  // map[]string
-
-		string_slice := row.StrArray("text_array_column") // []string
-		int_slice := row.IntArray("int_array_column")  // []int
-
-		i, row = list.Range()
+	Singers := []Singer{}
+	if err := dbh.Get(mSinger, &Singers, sql, values); err != nil {
+		log.Fatal(err)
 	}
 
+	/* View list of records */
+	fmt.Printf("%s %s (%s)\n%s\n", Lennon.Lname, Lennon.Fname, Lennon.Dob.Format("Jan 2 2006"), Lennon.Cv)
+	fmt.Printf("Children: %#v\n", Lennon.ChildrenNames)
+	fmt.Printf("Discography: %#v\n", Lennon.Disks)
+	fmt.Printf("Count referres: %#v\n", Lennon.CountRefs)
 
-	// Data for json:
-	json := list.Interface() // []map[string]interface {}
+	/* View list of records */
+	fmt.Printf("\n\nSingers:\n%#v\n", Singers)
 
+}
 ```
 
 ## xSql ##
