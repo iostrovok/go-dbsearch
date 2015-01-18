@@ -24,46 +24,18 @@ func convert(List map[string]*OneRow, name string, data interface{}, Result inte
 		return nil
 	}
 
-	dataValKind := dataVal.Kind()
-	if dataValKind != reflect.Map {
-		return fmt.Errorf("'%s' expected a map, got '%s'", name, dataValKind)
-	}
-
-	dataValType := dataVal.Type()
-	if kind := dataValType.Key().Kind(); kind != reflect.String && kind != reflect.Interface {
-		return fmt.Errorf(
-			"'%s' needs a map with string keys, has '%s' keys",
-			name, dataValType.Key().Kind())
-	}
-
-	fields := make(map[*reflect.StructField]reflect.Value)
 	structType := val.Type()
 	for i := 0; i < structType.NumField(); i++ {
-		fieldType := structType.Field(i)
-
-		if fieldType.Anonymous {
-			return fmt.Errorf("%s: unsupported type: %s", fieldType.Name, fieldType.Type.Kind())
-		}
-
-		fields[&fieldType] = val.Field(i)
-		if !fields[&fieldType].IsValid() {
-			panic("field is not valid")
-		}
-	}
-
-	for fieldType, field := range fields {
-		fieldName := fieldType.Name
+		fieldName := structType.Field(i).Name
 
 		el := List[fieldName]
 		if el == nil {
-			log.Fatalf("No setup fieldName [%s]\n", fieldName)
+			return fmt.Errorf("No setup fieldName [%s]\n", fieldName)
 		}
 
-		rawMapKey := reflect.ValueOf(fieldName)
-		rawMapVal := dataVal.MapIndex(rawMapKey)
-
-		if field.CanSet() && rawMapVal != reflect.Zero(reflect.TypeOf(rawMapVal)).Interface() {
-			if err := el.SetFunc(rawMapVal.Interface(), field); err != nil {
+		rawMapVal := dataVal.MapIndex(reflect.ValueOf(fieldName))
+		if val.Field(i).CanSet() && rawMapVal != reflect.Zero(reflect.TypeOf(rawMapVal)).Interface() {
+			if err := el.SetFunc(rawMapVal.Interface(), val.Field(i)); err != nil {
 				return err
 			}
 		}
