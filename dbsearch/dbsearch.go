@@ -208,6 +208,23 @@ func (s *Searcher) GetFace(mType *AllRows, sqlLine string,
 	return out, nil
 }
 
+func (s *Searcher) GetFaceOne(mType *AllRows, sqlLine string,
+	values ...[]interface{}) (map[string]interface{}, error) {
+
+	s.IsOneRec = true
+	out := map[string]interface{}{}
+
+	list, err := s.GetFace(mType, sqlLine, values...)
+
+	if err == nil {
+		if len(list) > 0 {
+			out = list[0]
+		}
+	}
+
+	return out, err
+}
+
 func mCheckError(err error) {
 	if err != nil {
 		log.Fatal(err)

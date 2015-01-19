@@ -9,8 +9,10 @@ func Test_Interface(t *testing.T) {
 	s := init_test_data(t)
 	s.SetDebug(false)
 	if s != nil {
-		_01_interface_load(t, s)
-		_02_interface_json(t, s)
+		_01_interface_load(t, s, false)
+		_01_interface_load(t, s, true)
+		_02_interface_json(t, s, false)
+		_02_interface_json(t, s, true)
 	}
 	//t.Fatal("Success [no error] test")
 }
@@ -58,21 +60,36 @@ var interface_load_mTestType *AllRows = &AllRows{
 	SType: reflect.TypeOf(interface_load_TestPlace{}),
 }
 
-func _01_interface_load(t *testing.T, s *Searcher) {
+func _01_interface_load(t *testing.T, s *Searcher, asList bool) {
 	interface_load_f_test_table(s)
 	s.SetDieOnColsName(false)
-	p, err := s.GetFace(interface_load_mTestType, "SELECT * FROM public.test ORDER BY 1")
-	if err != nil {
-		t.Fatal(err)
+
+	p := map[string]interface{}{}
+	var err error = nil
+	if asList {
+		list, err := s.GetFace(interface_load_mTestType, "SELECT * FROM public.test ORDER BY 1")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(list) > 0 {
+			p = list[0]
+		} else {
+			t.Fatal("Error _01_interface_load. Point 1.")
+		}
+	} else {
+		p, err = s.GetFaceOne(interface_load_mTestType, "SELECT * FROM public.test ORDER BY 1")
+		if err != nil {
+			t.Fatal(err)
+		}
 	}
 
-	switch p[0]["col2"].(type) {
+	switch p["col2"].(type) {
 	case int:
-		if p[0]["col2"].(int) != 9223372036854775807 {
-			t.Fatal("Error _01_interface_load. Point 3. ")
+		if p["col2"].(int) != 9223372036854775807 {
+			t.Fatal("Error _01_interface_load. Point 2. ")
 		}
 	default:
-		t.Fatal("Error _01_interface_load. Point 1.")
+		t.Fatal("Error _01_interface_load. Point 3.")
 	}
 }
 
@@ -89,7 +106,7 @@ var interface_json_mTestType *AllRows = &AllRows{
 	SType: reflect.TypeOf(interface_json_TestPlace{}),
 }
 
-func _02_interface_json(t *testing.T, s *Searcher) {
+func _02_interface_json(t *testing.T, s *Searcher, asList bool) {
 
 	str := `'{"array":[{"one":1,"two":"two"},{"next":""}],"null":null,"false":false,"true":true,"ru":"Слова пишем слево на право"}'`
 
@@ -102,24 +119,39 @@ func _02_interface_json(t *testing.T, s *Searcher) {
 	}
 
 	make_t_table(s, sql_create, sql_cols, sql_vals)
-	p, err := s.GetFace(interface_json_mTestType, "SELECT * FROM public.test ORDER BY 1")
-	if err != nil {
-		t.Fatal(err)
+
+	p := map[string]interface{}{}
+	var err error = nil
+	if asList {
+		list, err := s.GetFace(interface_json_mTestType, "SELECT * FROM public.test ORDER BY 1")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(list) > 0 {
+			p = list[0]
+		} else {
+			t.Fatal("Error _02_interface_json. Point 1.")
+		}
+	} else {
+		p, err = s.GetFaceOne(interface_json_mTestType, "SELECT * FROM public.test ORDER BY 1")
+		if err != nil {
+			t.Fatal(err)
+		}
 	}
 
-	switch p[0]["col2"].(type) {
+	switch p["col2"].(type) {
 	case map[string]interface{}:
-		s := p[0]["col2"].(map[string]interface{})["true"]
+		s := p["col2"].(map[string]interface{})["true"]
 		switch s.(type) {
 		case bool:
 			if !s.(bool) {
-				t.Fatal("Error _02_interface_json. Point 3. ")
+				t.Fatal("Error _02_interface_json. Point 2. ")
 			}
 		default:
-			t.Fatal("Error _02_interface_json. Point 2.")
+			t.Fatal("Error _02_interface_json. Point 3.")
 		}
 	default:
-		t.Fatal("Error _02_interface_json. Point 1.")
+		t.Fatal("Error _02_interface_json. Point 4.")
 	}
 
 }
