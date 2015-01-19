@@ -46,8 +46,8 @@ func (aRows *AllRows) PanicConvertRunTime(fieldName string, Type string, fTType 
 		file, line, aRows.SType, fieldName, Type, fTType, err, data)
 }
 
-func (aRows *AllRows) PanicInitConvert(what, fieldName, Type string) {
-	log.Panicf("Error for %s.%s. Not found '%s' for '%s'\n", aRows.SType, fieldName, what, Type)
+func (aRows *AllRows) PanicInitMessage(what, fieldName, Type string) string {
+	return fmt.Sprintf("Error for %s.%s. Not found '%s' for '%s'\n", aRows.SType, fieldName, what, Type)
 }
 
 func (aRows *AllRows) PanicConvert(fieldName string, Type string, fTType reflect.Type) {

@@ -76,7 +76,9 @@ func (s *Searcher) _initGet(aRows *AllRows, sqlLine string,
 	values ...[]interface{}) (*GetRowResultStr, error) {
 
 	s.LastCols = []string{}
-	s.PreInit(aRows)
+	if err := s.PreInit(aRows); err != nil {
+		return nil, err
+	}
 
 	value := []interface{}{}
 	if len(values) > 0 {

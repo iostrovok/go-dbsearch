@@ -1,7 +1,6 @@
 package dbsearch
 
 import (
-	//"log"
 	"reflect"
 	"testing"
 )
@@ -13,6 +12,7 @@ func Test_AutoLoad(t *testing.T) {
 		_00_autoload_test(t, s)
 		_01_autoload_test(t, s)
 		_02_autoload_test(t, s)
+		_03_full_load_test(t, s)
 	}
 	//t.Fatal("Success [no error] test")
 }
@@ -138,4 +138,22 @@ func _02_autoload_test(t *testing.T, s *Searcher) {
 
 	autoload_main_f_test_table(s, cols)
 	s.PreInit(autoload_mTestType)
+}
+
+/*
+	Check SType field
+*/
+func _03_full_load_test(t *testing.T, s *Searcher) {
+	var autoload_mTestType *AllRows = &AllRows{}
+
+	var err error = nil
+	defer func() {
+		if err == nil {
+			t.Fatalf("No catch error for empty SType\n")
+		} else {
+			t.Skip()
+		}
+	}()
+
+	err = s.PreInit(autoload_mTestType)
 }

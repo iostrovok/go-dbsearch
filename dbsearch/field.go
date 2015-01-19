@@ -41,10 +41,10 @@ func (aRows *AllRows) GetFieldInfo(field string) (*OneRowInfo, bool) {
 	return nil, false
 }
 
-func (aRows *AllRows) PreinitTable() {
+func (aRows *AllRows) PreinitTable() error {
 
 	if aRows.Table == "" {
-		return
+		return nil
 	}
 
 	if aRows.Schema == "" {
@@ -55,6 +55,8 @@ func (aRows *AllRows) PreinitTable() {
 		Table:  aRows.Table,
 		Schema: aRows.Schema,
 	}
+
+	return nil
 }
 
 func _field_name(column_name string) string {

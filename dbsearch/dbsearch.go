@@ -2,7 +2,6 @@ package dbsearch
 
 import (
 	"database/sql"
-	//"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/iostrovok/go-dbsearch/dbsearch/sqler"
@@ -11,6 +10,7 @@ import (
 	"log"
 	"reflect"
 	"regexp"
+	"runtime"
 	"strconv"
 	"strings"
 	"sync"
@@ -239,20 +239,36 @@ func (aRows *AllRows) PreInit() {
 	}
 }
 
-func (s *Searcher) PreInit(aRows *AllRows) {
+func (s *Searcher) PreInit(aRows *AllRows) error {
 	if !aRows.Done {
 		m.Lock()
-		aRows.PreinitTable()
+		if err := aRows.PreinitTable(); err != nil {
+			return err
+		}
 		if aRows.TableInfo != nil {
-			s.GetTableData(aRows.TableInfo)
+			if err := s.GetTableData(aRows.TableInfo); err != nil {
+				return err
+			}
 		}
 		aRows.DieOnColsName = s.DieOnColsName
-		aRows.iPrepare()
+		if err := aRows.iPrepare(); err != nil {
+			return err
+		}
 		m.Unlock()
 	}
+	return nil
 }
 
-func (aRows *AllRows) iPrepare() {
+func (aRows *AllRows) iPrepare() error {
+
+	if aRows.SType == nil {
+		_, file1, line1, _ := runtime.Caller(2)
+		_, file2, line2, _ := runtime.Caller(3)
+		_, file3, line3, _ := runtime.Caller(4)
+		return fmt.Errorf("No defined field %s.SType in\n%s line %d\n%s line %d\n%s line %d\n", reflect.TypeOf(aRows),
+			file1, line1, file2, line2, file3, line3)
+	}
+
 	st := reflect.TypeOf(reflect.New(aRows.SType).Interface()).Elem()
 
 	aRows.Done = true
@@ -282,7 +298,7 @@ func (aRows *AllRows) iPrepare() {
 		}
 		if dbname == "" {
 			if aRows.DieOnColsName {
-				aRows.PanicInitConvert("field_name", fieldName, fieldTypeTypeStr)
+				return errors.New(aRows.PanicInitMessage("field_name", fieldName, fieldTypeTypeStr))
 			} else {
 				if VIEW_DEBUG {
 					log.Printf("Warning for %s.%s. Not found field for '%s'\n", aRows.SType, fieldName, fieldTypeTypeStr)
@@ -300,7 +316,7 @@ func (aRows *AllRows) iPrepare() {
 
 		if dbtype == "" {
 			if aRows.DieOnColsName {
-				aRows.PanicInitConvert("db_type", fieldName, dbname)
+				return errors.New(aRows.PanicInitMessage("db_type", fieldName, dbname))
 			} else {
 				if VIEW_DEBUG {
 					log.Printf("Warning for %s.%s. Not found 'db' tag for '%s'\n", aRows.SType, fieldName, fieldTypeTypeStr)
@@ -322,6 +338,8 @@ func (aRows *AllRows) iPrepare() {
 
 		oRow.SetFunc = aRows.convert_select(oRow, fieldTypeTypeStr, fieldName, fieldTypeType)
 	}
+
+	return nil
 }
 
 func Prepare(s interface{}) *AllRows {
