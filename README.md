@@ -17,36 +17,11 @@ See example for more inforamtion. They are in "./dbsearch/example/" path.
 # Using #
 ## DB-Search ##
 ### Import ###
-```go
-	import "github.com/iostrovok/go-dbsearch/dbsearch"
-```
-### Connect/Init ###
-```go
-	import "github.com/iostrovok/go-dbsearch/dbsearch"
-
-	pool_size := 10	
-	stop_error := true // die if connect has errors
-	dsn := "user=pqgotest dbname=pqgotest sslmode=verify-full"
-
-	dbh, err := dbsearch.DBI(pool_size, dsn, stop_error)
-	dbh.StartReConnect(10) // Tries to reconnect each 10 seconds if connect was broken
-
-```
-
-or
 
 ```go
-	import (
-		"github.com/iostrovok/go-dbsearch/dbsearch"
-		_ "github.com/lib/pq"
-		"database/sql"
-	)
 
-	db, err := sql.Open("postgres", "user=pqgotest dbname=pqgotest sslmode=verify-full")
-	if err != nil {
-		log.Fatal(err)
-	}
-	dbh := dbsearch.SetDBI( db )
+import "github.com/iostrovok/go-dbsearch/dbsearch"
+
 ```
 
 ### Quick start ###
@@ -141,6 +116,281 @@ func main() {
 
 }
 ```
+
+### Connect/Init ###
+```go
+
+import "github.com/iostrovok/go-dbsearch/dbsearch"
+
+pool_size := 10	
+stop_error := true // die if connect has errors
+dsn := "user=pqgotest dbname=pqgotest sslmode=verify-full"
+
+dbh, err := dbsearch.DBI(pool_size, dsn, stop_error)
+dbh.StartReConnect(10) // Tries to reconnect each 10 seconds if connect was broken
+
+```
+
+or
+
+```go
+
+import (
+	"github.com/iostrovok/go-dbsearch/dbsearch"
+	_ "github.com/lib/pq"
+	"database/sql"
+)
+
+db, err := sql.Open("postgres", "user=pqgotest dbname=pqgotest sslmode=verify-full")
+if err != nil {
+	log.Fatal(err)
+}
+dbh := dbsearch.SetDBI( db )
+```
+
+### Read map[string]interface{} / []map[string]interface{} ###
+```go
+
+import "github.com/iostrovok/go-dbsearch/dbsearch"
+
+type Singer struct {
+	Id     int
+	Active bool
+	Fname         string
+	Lname         string
+}
+
+var mSinger *dbsearch.AllRows = &dbsearch.AllRows{
+	Table:  "person",
+	Schema: "public",
+}
+
+sql := "SELECT * FROM public.singer LIMIT 1"
+map, err := dbh.GetFace(mSinger, sql)
+// map is map[string]interface{} likes that: { db_filed: interface{} }
+
+sql := "SELECT * FROM public.singer"
+slice, err := dbh.GetFace(mSinger, sql)
+// slice is []map[string]interface{}
+
+```
+
+### Read structure fields ###
+#### The structure definition ways  ####
+
+1) Tags "bd" & "type"
+
+2) Title table and special title fields
+
+### Tags "bd" & "type" ###
+
+db - column name
+
+type - postresql's column type
+
+```go
+
+import "github.com/iostrovok/go-dbsearch/dbsearch"
+import "reflect"
+
+type Singer struct {
+	Id     				int 	`db:"id"     type:"serial"`
+	Active 				bool  	`db:"active" type:"bool"`
+	Name_of_Singer		string	`db:"fname"  type:"text"`
+	SuperName_of_Singer	string	`db:"lname"  type:"text"`
+}
+
+var mSinger *dbsearch.AllRows = &dbsearch.AllRows{
+	SType: reflect.TypeOf(Singer{}), // Optional
+}
+
+...
+
+p := []Singer{}
+dbh.Get(mSinger, &p, "SELECT * FROM public.singer ORDER BY 1")
+
+```
+### Title table and special title fields ###
+
+If we defined table name in our *Allows structure and defined structure field by our "conversion rules" we can leave out "db" & "type" tags.
+
+##### Rules of conversion from database column titles to structure names ####
+
+1) "\<first letter>" turns into "uppercase(\<first letter>)"
+
+2) "\<letter 1>_<letter 2>" turns into "\<letter 1>uppercase(\<letter 2>)"
+
+#######Examples:#######
+
+my_long_column_title -> MyLongColumnTitle
+
+t -> T
+
+name -> Name
+
+```go
+
+import "github.com/iostrovok/go-dbsearch/dbsearch"
+import "reflect"
+
+type Singer struct {
+	Id     	int 	// db: "id"     -> struct field "Id"
+	Active 	bool  	// db: "active" -> struct field "Active"
+	Fname	string	// db: "fname"  -> struct field "Fname"
+	Lname 	string	// db: "lname"  -> struct field "Lname"
+}
+
+var mSinger *dbsearch.AllRows = &dbsearch.AllRows{
+	Table: "singer",  // necessary
+	Schema: "public", // optional, default "public"
+	SType: reflect.TypeOf(Singer{}), // Optional
+}
+
+...
+
+p := []Singer{}
+dbh.Get(mSinger, &p, "SELECT * FROM public.singer ORDER BY 1")
+
+```
+
+### Read rows as []map[string]interface{} ###
+If we want to get row(s) as map[string]interface{} (or []map[string]interface{} for list of columns) we need to use GetFaceOne and GetFace function. 
+In this case we have to define:
+
+1) tags "db" and "type" for each structure field
+
+or
+
+2) use "Rules of conversion" and define dbsearch.AllRows.Table and dbsearch.AllRows.SType properties
+
+
+```go
+
+import "github.com/iostrovok/go-dbsearch/dbsearch"
+import "reflect"
+import "log"
+
+type Singer struct {
+	Id     	int 	// db: "id"     -> struct field "Id"
+	Active 	bool  	// db: "active" -> struct field "Active"
+	Fname	string	// db: "fname"  -> struct field "Fname"
+	Lname 	string	// db: "lname"  -> struct field "Lname"
+}
+
+var mSinger *dbsearch.AllRows = &dbsearch.AllRows{
+	Table: "singer",  // necessary
+	Schema: "public", // optional, default "public"
+	SType: reflect.TypeOf(Singer{}), // Optional
+}
+
+//...
+
+sql := "SELECT * FROM public.person WHERE fname IN( $1, $2) "
+values := []interface{}{"John", "Paul"}
+slice, err := dbh.GetFace(mSinger, sql, values)
+if err != nil {
+	log.Panicln(err)
+}
+
+// or 
+
+sql := "SELECT * FROM public.person fname = $ LIMIT 1"
+values := []interface{}{"John", "Paul"}
+map, err := dbh.GetFace(mSinger, sql, values)
+if err != nil {
+	log.Panicln(err)
+}
+
+```
+
+### type Searcher ###
+
+```go
+
+type Searcher struct {
+}
+
+```
+
+Searcher contains information about connection to db, log level e.t.c
+
+#### func DBI(int, string, stop_error ...) ####
+#####func DBI(poolSize int, dsn string, stop_error ...bool) (*Searcher, error)#####
+
+Returns *Searcher object.
+
+#### func SetDBI(*sql.DB) ####
+#####func SetDBI(db *sql.DB) (*Searcher, error)#####
+
+It defines db connect for current if *Searcher already object has existed
+
+#### func (*Searcher) GetOne ####
+#####func (s *Searcher) GetOne(mType *AllRows, p interface{}, sqlLine string, values ...[]interface{}) error#####
+
+Returns one rows from DB with sqlLine and values.
+
+#### func (*Searcher) Get ####
+#####func (s *Searcher) Get(mType *AllRows, p interface{}, sqlLine string, values ...[]interface{}) error#####
+
+Returns slice rows from DB with sqlLine and values.
+
+```go
+
+type A struct {
+	Id   int
+	Name string
+}
+
+var mType *dbsearch.AllRows = &dbsearch.AllRows{
+	Table:  "test",
+}
+p := A{}
+GetOne(mType, &p, "SELECT * FROM public.test")
+
+s := []A{}
+Get(mType, &p, "SELECT * FROM public.test")
+
+```
+
+#### func (*Searcher) GetFaceOne ####
+#####func (s *Searcher) GetFaceOne(mType *AllRows, sqlLine string,
+	values ...[]interface{}) (map[string]interface{}, error)#####
+
+Returns one rows from DB with sqlLine and values as map[string]interface{}
+
+#### func (*Searcher) GetFace ####
+#####func (s *Searcher) GetFace(mType *AllRows, sqlLine string, values ...[]interface{}) ([]map[string]interface{}, error)#####
+
+Returns slice rows from DB with sqlLine and values as []map[string]interface{}
+
+```go
+
+type A struct {
+	Id   int
+	Name string
+}
+
+var mType *dbsearch.AllRows = &dbsearch.AllRows{
+	Table:  "test",
+}
+slice, err := GetFace(mType, "SELECT * FROM public.test")
+
+map, err := GetFaceOne(mType, "SELECT * FROM public.test")
+
+```
+
+### type AllRows ###
+
+```go
+type AllRows struct {
+	SType         reflect.Type // type of returned structure
+	Table         string       // Tables name
+	Schema        string       // Schema name
+	...
+}
+```
+AllRows contains information which is needed for select a single row.
+
 
 ## xSql ##
 ### Import ###
