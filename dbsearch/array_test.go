@@ -136,15 +136,16 @@ func _02_array_int64(t *testing.T, s *Searcher) {
 	boolean test
 */
 type array_bool_TestPlace struct {
-	Col1 int       `db:"col1" type:"int"`
-	Col2 []string  `db:"col2" type:"[]boolean"`
-	Col3 []int64   `db:"col3" type:"[]boolean"`
-	Col4 []float32 `db:"col4" type:"[]boolean"`
-	Col5 []float64 `db:"col5" type:"[]bool"`
-	Col6 []bool    `db:"col6" type:"[]bool"`
-	Col7 []int     `db:"col7" type:"[]bool"`
-	Col8 []uint8   `db:"col8" type:"[]bool"`
-	Col9 []uint64  `db:"col9" type:"[]bool"`
+	Col1  int       `db:"col1" type:"int"`
+	Col2  []string  `db:"col2" type:"[]boolean"`
+	Col3  []int64   `db:"col3" type:"[]boolean"`
+	Col4  []float32 `db:"col4" type:"[]boolean"`
+	Col5  []float64 `db:"col5" type:"[]bool"`
+	Col6  []bool    `db:"col6" type:"[]bool"`
+	Col7  []int     `db:"col7" type:"[]bool"`
+	Col8  []uint8   `db:"col8" type:"[]bool"`
+	Col9  []uint64  `db:"col9" type:"[]bool"`
+	Col10 []uint    `db:"col10" type:"[]bool"`
 }
 
 var array_bool_mTestType *AllRows = &AllRows{
@@ -155,12 +156,12 @@ func _11_array_bool(t *testing.T, s *Searcher) {
 
 	sql_create := " CREATE TABLE public.test " +
 		"(col1 int, col2 boolean[], col3 boolean[], col4 boolean[], " +
-		"col5 boolean[], col6 boolean[], col7 boolean[], col8 boolean[], col9 boolean[]) "
-	sql_cols := "INSERT INTO test(col1, col2, col3, col4, col5, col6, col7, col8, col9 ) "
+		"col5 boolean[], col6 boolean[], col7 boolean[], col8 boolean[], col9 boolean[], col10 boolean[]) "
+	sql_cols := "INSERT INTO test(col1, col2, col3, col4, col5, col6, col7, col8, col9, col10 ) "
 	sql_vals := []string{
-		"VALUES (1, '{TRUE,FALSE}'::bool[], '{TRUE,FALSE}'::bool[], '{TRUE,FALSE}'::bool[], '{TRUE,FALSE}'::bool[], '{TRUE,FALSE}'::bool[], '{TRUE,FALSE}'::bool[], '{TRUE,FALSE}'::bool[],'{TRUE,FALSE}'::bool[] )",
-		"VALUES (2, '{FALSE,TRUE}'::bool[], '{FALSE,TRUE}'::bool[], '{FALSE,TRUE}'::bool[], '{FALSE,TRUE}'::bool[], '{FALSE,TRUE}'::bool[], '{FALSE,TRUE}'::bool[], '{FALSE,TRUE}'::bool[], '{FALSE,TRUE}'::bool[])",
-		"VALUES (3, null,  null,  null,  null,  null,  null,  null,  null)", // check null - nil
+		"VALUES (1, '{TRUE,FALSE}'::bool[], '{TRUE,FALSE}'::bool[], '{TRUE,FALSE}'::bool[], '{TRUE,FALSE}'::bool[], '{TRUE,FALSE}'::bool[], '{TRUE,FALSE}'::bool[], '{TRUE,FALSE}'::bool[],'{TRUE,FALSE}'::bool[],'{TRUE,FALSE}'::bool[] )",
+		"VALUES (2, '{FALSE,TRUE}'::bool[], '{FALSE,TRUE}'::bool[], '{FALSE,TRUE}'::bool[], '{FALSE,TRUE}'::bool[], '{FALSE,TRUE}'::bool[], '{FALSE,TRUE}'::bool[], '{FALSE,TRUE}'::bool[], '{FALSE,TRUE}'::bool[], '{FALSE,TRUE}'::bool[])",
+		"VALUES (3, null,  null,  null,  null,  null,  null,  null,  null, null)", // check null - nil
 	}
 
 	make_t_table(s, sql_create, sql_cols, sql_vals)

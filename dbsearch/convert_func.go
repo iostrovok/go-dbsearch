@@ -36,9 +36,10 @@ func (oRow OneRow) DebugV(fieldName string, fTType reflect.Type, data interface{
 	}
 }
 
-func (aRows *AllRows) PanicConvertRunTime(fieldName string, Type string, fTType reflect.Type, err error, data interface{}) {
-	_, file, line, _ := runtime.Caller(1)
-	log.Panicf("Error in %s line %d for %s.%s convert data from '%s' to '%s'.\n"+
+func (aRows *AllRows) ErrorConvertRunTimeMessage(fieldName string, Type string,
+	fTType reflect.Type, err error, data interface{}) error {
+	_, file, line, _ := runtime.Caller(3)
+	return fmt.Errorf("Error in %s line %d for %s.%s convert data from '%s' to '%s'.\n"+
 		"Error System: '%s'\n"+
 		"Date: %#v\n",
 		file, line, aRows.SType, fieldName, Type, fTType, err, data)
@@ -293,6 +294,12 @@ func (aRows *AllRows) convert_func_no_slice_int(oRow OneRow, fStrType, fieldName
 		return fn, false
 	}
 
+	v := []interface{}{"convert_func_no_slice_int"}
+	oRow.DebugV(fieldName, fTType, v)
+	log.Printf("fStrType: %s\n", fStrType)
+	log.Printf("fTType: %s\n", fTType)
+	log.Printf("fieldName: %s\n", fieldName)
+
 	switch fStrType {
 	case "int", "int8", "int16", "int32", "int64":
 		fn = func(data interface{}, field reflect.Value) error {
@@ -322,7 +329,7 @@ func (aRows *AllRows) convert_func_no_slice_int(oRow OneRow, fStrType, fieldName
 		fn = func(data interface{}, field reflect.Value) error {
 			oRow.DebugV(fieldName, fTType, data)
 			if IsNotNilValue(data, field, fTType) {
-				field.SetInt(int64(reflect.ValueOf(data).Uint()))
+				field.SetUint(uint64(reflect.ValueOf(data).Int()))
 			}
 			return nil
 		}
@@ -385,6 +392,12 @@ func (aRows *AllRows) convert_func_no_slice_text(oRow OneRow, fStrType, fieldNam
 		return fn, false
 	}
 
+	v := []interface{}{"convert_func_no_slice_text"}
+	oRow.DebugV(fieldName, fTType, v)
+	log.Printf("fStrType: %s\n", fStrType)
+	log.Printf("fTType: %s\n", fTType)
+	log.Printf("fieldName: %s\n", fieldName)
+
 	switch fStrType {
 	case "float32", "float64":
 		fn = func(data interface{}, field reflect.Value) error {
@@ -394,7 +407,7 @@ func (aRows *AllRows) convert_func_no_slice_text(oRow OneRow, fStrType, fieldNam
 				f, err := strconv.ParseFloat(_AnyToString(data), field.Type().Bits())
 				if err != nil {
 					// TODO Make "WEEK" mode when we set "" in error case
-					aRows.PanicConvertRunTime(fieldName, oRow.Type, fTType, err, data)
+					return aRows.ErrorConvertRunTimeMessage(fieldName, oRow.Type, fTType, err, data)
 				}
 				field.SetFloat(f)
 			}
@@ -408,7 +421,7 @@ func (aRows *AllRows) convert_func_no_slice_text(oRow OneRow, fStrType, fieldNam
 				f, err := strconv.ParseFloat(_AnyToString(data), 64)
 				if err != nil {
 					// TODO Make "WEEK" mode when we set "" in error case
-					aRows.PanicConvertRunTime(fieldName, oRow.Type, fTType, err, data)
+					return aRows.ErrorConvertRunTimeMessage(fieldName, oRow.Type, fTType, err, data)
 				}
 				field.Set(reflect.ValueOf([]float64{f}))
 			}
@@ -422,9 +435,28 @@ func (aRows *AllRows) convert_func_no_slice_text(oRow OneRow, fStrType, fieldNam
 				i, err := strconv.ParseInt(_AnyToString(data), 0, field.Type().Bits())
 				if err != nil {
 					// TODO Make "WEEK" mode when we set "" in error case
-					aRows.PanicConvertRunTime(fieldName, oRow.Type, fTType, err, data)
+					return aRows.ErrorConvertRunTimeMessage(fieldName, oRow.Type, fTType, err, data)
 				} else {
 					field.SetInt(i)
+				}
+			}
+			return nil
+		}
+	case "uint", "uint8", "uint16", "uint32", "uint64":
+		fn = func(data interface{}, field reflect.Value) error {
+			oRow.DebugV(fieldName, fTType, data)
+
+			if IsNotNilValue(data, field, fTType) {
+				i, err := strconv.ParseInt(_AnyToString(data), 0, field.Type().Bits())
+				if err != nil {
+					// TODO Make "WEEK" mode when we set "" in error case
+					return aRows.ErrorConvertRunTimeMessage(fieldName, oRow.Type, fTType, err, data)
+				} else if i < 0 {
+					// TODO Make "WEEK" mode when we set i = 0 when i < 0
+					err := fmt.Errorf("Value from DB is less then zero")
+					return aRows.ErrorConvertRunTimeMessage(fieldName, oRow.Type, fTType, err, data)
+				} else {
+					field.SetUint(uint64(i))
 				}
 			}
 			return nil
@@ -437,7 +469,7 @@ func (aRows *AllRows) convert_func_no_slice_text(oRow OneRow, fStrType, fieldNam
 				i, err := strconv.ParseInt(_AnyToString(data), 0, 64)
 				if err != nil {
 					// TODO Make "WEEK" mode when we set "" in error case
-					aRows.PanicConvertRunTime(fieldName, oRow.Type, fTType, err, data)
+					return aRows.ErrorConvertRunTimeMessage(fieldName, oRow.Type, fTType, err, data)
 				} else {
 					field.Set(reflect.ValueOf([]int{int(i)}))
 				}
@@ -452,7 +484,7 @@ func (aRows *AllRows) convert_func_no_slice_text(oRow OneRow, fStrType, fieldNam
 				i, err := strconv.ParseInt(_AnyToString(data), 0, 64)
 				if err != nil {
 					// TODO Make "WEEK" mode when we set "" in error case
-					aRows.PanicConvertRunTime(fieldName, oRow.Type, fTType, err, data)
+					return aRows.ErrorConvertRunTimeMessage(fieldName, oRow.Type, fTType, err, data)
 				} else {
 					field.Set(reflect.ValueOf([]int64{i}))
 				}
@@ -471,7 +503,7 @@ func (aRows *AllRows) convert_func_no_slice_text(oRow OneRow, fStrType, fieldNam
 	case "[]string":
 		fn = func(data interface{}, field reflect.Value) error {
 			oRow.DebugV(fieldName, fTType, data)
-
+			//sssssssss
 			if IsNotNilValue(data, field, fTType) {
 				field.Set(reflect.ValueOf([]string{_AnyToString(data)}))
 			}
@@ -500,13 +532,29 @@ func (aRows *AllRows) convert_func_no_slice_num(oRow OneRow, fStrType, fieldName
 				i, err := strconv.ParseFloat(s, field.Type().Bits())
 				if err != nil {
 					// TODO Make "WEEK" mode when we set "" in error case
-					aRows.PanicConvertRunTime(fieldName, oRow.Type, fTType, err, data)
+					return aRows.ErrorConvertRunTimeMessage(fieldName, oRow.Type, fTType, err, data)
 				}
 
 				field.SetInt(int64(i))
 			}
 			return nil
 		}
+	case "uint", "uint8", "uint16", "uint32", "uint64":
+		fn = func(data interface{}, field reflect.Value) error {
+			oRow.DebugV(fieldName, fTType, data)
+			if IsNotNilValue(data, field, fTType) {
+				s := noNumberDots.ReplaceAllString(_AnyToString(data), "")
+				i, err := strconv.ParseFloat(s, field.Type().Bits())
+				if err != nil {
+					// TODO Make "WEEK" mode when we set "" in error case
+					return aRows.ErrorConvertRunTimeMessage(fieldName, oRow.Type, fTType, err, data)
+				}
+
+				field.SetUint(uint64(i))
+			}
+			return nil
+		}
+
 	case "[]int", "[]int64":
 		fn = func(data interface{}, field reflect.Value) error {
 			oRow.DebugV(fieldName, fTType, data)
@@ -515,7 +563,7 @@ func (aRows *AllRows) convert_func_no_slice_num(oRow OneRow, fStrType, fieldName
 				i, err := strconv.ParseFloat(s, 64)
 				if err != nil {
 					// TODO Make "WEEK" mode when we set "" in error case
-					aRows.PanicConvertRunTime(fieldName, oRow.Type, fTType, err, data)
+					return aRows.ErrorConvertRunTimeMessage(fieldName, oRow.Type, fTType, err, data)
 				}
 				if fStrType == "[]int" {
 					field.Set(reflect.ValueOf([]int{int(i)}))
@@ -533,7 +581,7 @@ func (aRows *AllRows) convert_func_no_slice_num(oRow OneRow, fStrType, fieldName
 				f, err := strconv.ParseFloat(s, field.Type().Bits())
 				if err != nil {
 					// TODO Make "WEEK" mode when we set "" in error case
-					aRows.PanicConvertRunTime(fieldName, oRow.Type, fTType, err, data)
+					return aRows.ErrorConvertRunTimeMessage(fieldName, oRow.Type, fTType, err, data)
 				}
 				field.SetFloat(float64(f))
 			}
@@ -547,7 +595,7 @@ func (aRows *AllRows) convert_func_no_slice_num(oRow OneRow, fStrType, fieldName
 				f, err := strconv.ParseFloat(s, 64)
 				if err != nil {
 					// TODO Make "WEEK" mode when we set "" in error case
-					aRows.PanicConvertRunTime(fieldName, oRow.Type, fTType, err, data)
+					return aRows.ErrorConvertRunTimeMessage(fieldName, oRow.Type, fTType, err, data)
 				}
 				field.Set(reflect.ValueOf([]float64{f}))
 			}
@@ -637,6 +685,22 @@ func (aRows *AllRows) convert_func_no_slice_real(oRow OneRow, fStrType, fieldNam
 
 			if IsNotNilValue(data, field, fTType) {
 				field.Set(reflect.ValueOf([]string{_AnyToString(data)}))
+			}
+			return nil
+		}
+	case "uint", "uint8", "uint16", "uint32", "uint64":
+		fn = func(data interface{}, field reflect.Value) error {
+			oRow.DebugV(fieldName, fTType, data)
+
+			if IsNotNilValue(data, field, fTType) {
+				s := noNumberDots.ReplaceAllString(_AnyToString(data), "")
+				i, err := strconv.ParseFloat(s, field.Type().Bits())
+				if err != nil {
+					// TODO Make "WEEK" mode when we set "" in error case
+					return aRows.ErrorConvertRunTimeMessage(fieldName, oRow.Type, fTType, err, data)
+				}
+
+				field.SetUint(uint64(i))
 			}
 			return nil
 		}
