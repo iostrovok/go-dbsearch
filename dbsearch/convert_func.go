@@ -294,12 +294,6 @@ func (aRows *AllRows) convert_func_no_slice_int(oRow OneRow, fStrType, fieldName
 		return fn, false
 	}
 
-	v := []interface{}{"convert_func_no_slice_int"}
-	oRow.DebugV(fieldName, fTType, v)
-	log.Printf("fStrType: %s\n", fStrType)
-	log.Printf("fTType: %s\n", fTType)
-	log.Printf("fieldName: %s\n", fieldName)
-
 	switch fStrType {
 	case "int", "int8", "int16", "int32", "int64":
 		fn = func(data interface{}, field reflect.Value) error {
@@ -391,12 +385,6 @@ func (aRows *AllRows) convert_func_no_slice_text(oRow OneRow, fStrType, fieldNam
 	if findTextReg.FindString(oRow.Type) == "" {
 		return fn, false
 	}
-
-	v := []interface{}{"convert_func_no_slice_text"}
-	oRow.DebugV(fieldName, fTType, v)
-	log.Printf("fStrType: %s\n", fStrType)
-	log.Printf("fTType: %s\n", fTType)
-	log.Printf("fieldName: %s\n", fieldName)
 
 	switch fStrType {
 	case "float32", "float64":
