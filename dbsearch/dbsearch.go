@@ -155,7 +155,7 @@ func (s *Searcher) GetCount(sqlLine string, values []interface{}) (int, error) {
 func (s *Searcher) GetOne(mType *AllRows, p interface{}, sqlLine string, values ...[]interface{}) error {
 	defer func() { s.IsOneRec = false }()
 
-	R, err := s._initGet(mType, sqlLine, values...)
+	R, err := s._initGet(mType, p, sqlLine, values...)
 	if err != nil {
 		return err
 	}
@@ -173,7 +173,7 @@ func (s *Searcher) GetOne(mType *AllRows, p interface{}, sqlLine string, values 
 func (s *Searcher) Get(mType *AllRows, p interface{}, sqlLine string, values ...[]interface{}) error {
 	defer func() { s.IsOneRec = false }()
 
-	R, err := s._initGet(mType, sqlLine, values...)
+	R, err := s._initGet(mType, p, sqlLine, values...)
 	if err != nil {
 		return err
 	}
@@ -197,7 +197,7 @@ func (s *Searcher) GetFace(mType *AllRows, sqlLine string,
 
 	out := []map[string]interface{}{}
 
-	R, err := s._initGet(mType, sqlLine, values...)
+	R, err := s._initGet(mType, nil, sqlLine, values...)
 	if err != nil {
 		return out, err
 	}
@@ -250,11 +250,36 @@ func (aRows *AllRows) PreInit() {
 	}
 }
 
-func (s *Searcher) PreInit(aRows *AllRows) error {
+func (s *Searcher) PreInit(aRows *AllRows, p ...interface{}) error {
 	if !aRows.Done {
 		m.Lock()
+
+		if s.logFull {
+			aRows.Log = 2
+		} else if s.log {
+			aRows.Log = 1
+		}
+
 		if err := aRows.PreinitTable(); err != nil {
 			return err
+		}
+
+		if aRows.SType == nil {
+			if len(p) == 0 || p[0] == nil {
+				_, file1, line1, _ := runtime.Caller(2)
+				_, file2, line2, _ := runtime.Caller(3)
+				_, file3, line3, _ := runtime.Caller(4)
+				return fmt.Errorf("No defined field %s.SType in\n%s line %d\n%s line %d\n%s line %d\n", reflect.TypeOf(aRows),
+					file1, line1, file2, line2, file3, line3)
+			}
+
+			aRows.SType = reflect.Indirect(reflect.ValueOf(p[0])).Type()
+			if aRows.SType.Kind() == reflect.Slice {
+				aRows.SType = aRows.SType.Elem()
+			}
+			if aRows.Log > 0 {
+				log.Printf("Auto set type %s\n", aRows.SType)
+			}
 		}
 		if aRows.TableInfo != nil {
 			if err := s.GetTableData(aRows.TableInfo); err != nil {
@@ -262,11 +287,7 @@ func (s *Searcher) PreInit(aRows *AllRows) error {
 			}
 		}
 		aRows.DieOnColsName = s.DieOnColsName
-		if s.logFull {
-			aRows.Log = 2
-		} else if s.log {
-			aRows.Log = 1
-		}
+
 		if err := aRows.iPrepare(); err != nil {
 			return err
 		}

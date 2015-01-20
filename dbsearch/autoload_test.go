@@ -12,6 +12,8 @@ func Test_AutoLoad(t *testing.T) {
 		_00_autoload_test(t, s)
 		_01_autoload_test(t, s)
 		_02_autoload_test(t, s)
+		_11_autoload_test(t, s)
+		_12_autoload_test(t, s)
 	}
 	//t.Fatal("Success [no error] test")
 }
@@ -133,4 +135,47 @@ func _02_autoload_test(t *testing.T, s *Searcher) {
 
 	autoload_main_f_test_table(s, cols)
 	s.PreInit(autoload_mTestType)
+}
+
+type autoload_11_TestPlace struct {
+	Col1 int
+	Col2 string
+	Col3 string
+	Col4 []string
+	Col5 []string
+	Col6 []string
+}
+
+func _11_autoload_test(t *testing.T, s *Searcher) {
+	var autoload_mTestType *AllRows = &AllRows{
+		Table:  "test",
+		Schema: "public",
+	}
+
+	cols := "col1 date, col2 time, col3 int, " +
+		"col4 smallint[], col5 text[], " +
+		"col6 bigint[], col7 char(100)[] "
+
+	autoload_main_f_test_table(s, cols)
+	p := []autoload_11_TestPlace{}
+	if err := s.Get(autoload_mTestType, &p, "SELECT * FROM public.test"); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func _12_autoload_test(t *testing.T, s *Searcher) {
+	var autoload_mTestType *AllRows = &AllRows{
+		Table:  "test",
+		Schema: "public",
+	}
+
+	cols := "col1 date, col2 time, col3 int, " +
+		"col4 smallint[], col5 text[], " +
+		"col6 bigint[], col7 char(100)[] "
+
+	autoload_main_f_test_table(s, cols)
+	p := autoload_11_TestPlace{}
+	if err := s.GetOne(autoload_mTestType, &p, "SELECT * FROM public.test"); err != nil {
+		t.Fatal(err)
+	}
 }

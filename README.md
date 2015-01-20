@@ -90,7 +90,6 @@ package main
 import "github.com/iostrovok/go-dbsearch/dbsearch"
 import "fmt"
 import "time"
-import "reflect"
 import "log"
 
 type Singer struct {
@@ -110,7 +109,6 @@ type Singer struct {
 var mSinger *dbsearch.AllRows = &dbsearch.AllRows{
 	Table:  "person",
 	Schema: "public",
-	SType:  reflect.TypeOf(Singer{}),
 }
 
 func main() {

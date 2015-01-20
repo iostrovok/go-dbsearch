@@ -72,11 +72,11 @@ func _AnyToString(data interface{}) string {
 	return out
 }
 
-func (s *Searcher) _initGet(aRows *AllRows, sqlLine string,
+func (s *Searcher) _initGet(aRows *AllRows, p interface{}, sqlLine string,
 	values ...[]interface{}) (*GetRowResultStr, error) {
 
 	s.LastCols = []string{}
-	if err := s.PreInit(aRows); err != nil {
+	if err := s.PreInit(aRows, p); err != nil {
 		return nil, err
 	}
 
