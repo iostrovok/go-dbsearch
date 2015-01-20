@@ -108,6 +108,14 @@ func (s *Searcher) _initGet(aRows *AllRows, sqlLine string,
 
 	R.Rows = rows
 
+	if s.log {
+		log.Printf("GetRowResultStr.Cols: %#v\n", R.Cols)
+		log.Printf("GetRowResultStr.Dest: %#v\n", R.Dest)
+		log.Printf("GetRowResultStr.RawResult: %#v\n", R.RawResult)
+		log.Printf("GetRowResultStr.Rows: %#v\n", R.Rows)
+		log.Printf("GetRowResultStr.SkipList: %#v\n", R.SkipList)
+	}
+
 	return R, nil
 }
 
