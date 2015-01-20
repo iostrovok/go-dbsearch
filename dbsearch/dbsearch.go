@@ -41,7 +41,7 @@ type AllRows struct {
 	Table         string
 	Schema        string
 	DieOnColsName bool
-	Log           bool
+	Log           int
 }
 
 type Searcher struct {
@@ -49,6 +49,7 @@ type Searcher struct {
 	poolSize      int
 	dsn           string
 	log           bool
+	logFull       bool
 	DieOnColsName bool
 	LastCols      []string
 	IsOneRec      bool
@@ -75,6 +76,14 @@ func (s *Searcher) SetDebug(is_debug ...bool) {
 		s.log = is_debug[0]
 	} else {
 		s.log = true
+	}
+}
+
+func (s *Searcher) SetStrongDebug(is_debug ...bool) {
+	if len(is_debug) > 0 {
+		s.logFull = is_debug[0]
+	} else {
+		s.logFull = true
 	}
 }
 
@@ -253,7 +262,11 @@ func (s *Searcher) PreInit(aRows *AllRows) error {
 			}
 		}
 		aRows.DieOnColsName = s.DieOnColsName
-		aRows.Log = s.log
+		if s.logFull {
+			aRows.Log = 2
+		} else if s.log {
+			aRows.Log = 1
+		}
 		if err := aRows.iPrepare(); err != nil {
 			return err
 		}
@@ -303,7 +316,7 @@ func (aRows *AllRows) iPrepare() error {
 			if aRows.DieOnColsName {
 				return errors.New(aRows.PanicInitMessage("field_name", fieldName, fieldTypeTypeStr))
 			} else {
-				if aRows.Log {
+				if aRows.Log > 0 {
 					log.Printf("Warning for %s.%s. Not found field for '%s'\n", aRows.SType, fieldName, fieldTypeTypeStr)
 				}
 				continue
@@ -321,7 +334,7 @@ func (aRows *AllRows) iPrepare() error {
 			if aRows.DieOnColsName {
 				return errors.New(aRows.PanicInitMessage("db_type", fieldName, dbname))
 			} else {
-				if aRows.Log {
+				if aRows.Log > 0 {
 					log.Printf("Warning for %s.%s. Not found 'db' tag for '%s'\n", aRows.SType, fieldName, fieldTypeTypeStr)
 				}
 				continue

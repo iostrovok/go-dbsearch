@@ -56,7 +56,9 @@ func (aRows *AllRows) PanicConvert(fieldName string, Type string, fTType reflect
 func (aRows *AllRows) convert_select(oRow OneRow, fStrType, fieldName string,
 	fTType reflect.Type) ConvertData {
 
-	oRow.Log = aRows.Log
+	if aRows.Log > 1 {
+		oRow.Log = true
+	}
 
 	if f, b := aRows.convert_func_slice(oRow, fStrType, fieldName, fTType); b {
 		return f
