@@ -28,6 +28,7 @@ type OneRow struct {
 	Name    string
 	SetFunc ConvertData
 	Type    string
+	Log     bool
 }
 
 type AllRows struct {
@@ -40,6 +41,7 @@ type AllRows struct {
 	Table         string
 	Schema        string
 	DieOnColsName bool
+	Log           bool
 }
 
 type Searcher struct {
@@ -251,6 +253,7 @@ func (s *Searcher) PreInit(aRows *AllRows) error {
 			}
 		}
 		aRows.DieOnColsName = s.DieOnColsName
+		aRows.Log = s.log
 		if err := aRows.iPrepare(); err != nil {
 			return err
 		}
@@ -300,7 +303,7 @@ func (aRows *AllRows) iPrepare() error {
 			if aRows.DieOnColsName {
 				return errors.New(aRows.PanicInitMessage("field_name", fieldName, fieldTypeTypeStr))
 			} else {
-				if VIEW_DEBUG {
+				if aRows.Log {
 					log.Printf("Warning for %s.%s. Not found field for '%s'\n", aRows.SType, fieldName, fieldTypeTypeStr)
 				}
 				continue
@@ -318,7 +321,7 @@ func (aRows *AllRows) iPrepare() error {
 			if aRows.DieOnColsName {
 				return errors.New(aRows.PanicInitMessage("db_type", fieldName, dbname))
 			} else {
-				if VIEW_DEBUG {
+				if aRows.Log {
 					log.Printf("Warning for %s.%s. Not found 'db' tag for '%s'\n", aRows.SType, fieldName, fieldTypeTypeStr)
 				}
 				continue

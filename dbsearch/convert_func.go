@@ -29,10 +29,8 @@ var (
 // An action transitions stochastically to a resulting score.
 type ConvertData func(data interface{}, val reflect.Value) error
 
-var VIEW_DEBUG bool = false
-
 func (oRow OneRow) DebugV(fieldName string, fTType reflect.Type, data interface{}) {
-	if VIEW_DEBUG {
+	if oRow.Log {
 		log.Printf("ACTION on %s. oRow.Type: %s => fTType: %s for %#v\n",
 			fieldName, oRow.Type, fTType, data)
 	}
@@ -57,6 +55,9 @@ func (aRows *AllRows) PanicConvert(fieldName string, Type string, fTType reflect
 /* Select function */
 func (aRows *AllRows) convert_select(oRow OneRow, fStrType, fieldName string,
 	fTType reflect.Type) ConvertData {
+
+	oRow.Log = aRows.Log
+
 	if f, b := aRows.convert_func_slice(oRow, fStrType, fieldName, fTType); b {
 		return f
 	}
