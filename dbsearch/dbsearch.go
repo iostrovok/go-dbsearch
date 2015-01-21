@@ -311,6 +311,7 @@ func (aRows *AllRows) iPrepare() error {
 	aRows.Done = true
 	aRows.List = make(map[string]*OneRow, 0)
 	aRows.DBList = make(map[string]*OneRow, 0)
+	var err error = nil
 
 	Count := 0
 	for true {
@@ -373,7 +374,10 @@ func (aRows *AllRows) iPrepare() error {
 		aRows.List[fieldName] = &oRow
 		aRows.DBList[dbname] = &oRow
 
-		oRow.SetFunc = aRows.convert_select(oRow, fieldTypeTypeStr, fieldName, fieldTypeType)
+		oRow.SetFunc, err = aRows.convert_select(oRow, fieldTypeTypeStr, fieldName, fieldTypeType)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil

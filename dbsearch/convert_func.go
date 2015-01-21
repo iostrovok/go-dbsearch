@@ -49,47 +49,67 @@ func (aRows *AllRows) PanicInitMessage(what, fieldName, Type string) string {
 	return fmt.Sprintf("Error for %s.%s. Not found '%s' for '%s'\n", aRows.SType, fieldName, what, Type)
 }
 
-func (aRows *AllRows) PanicConvert(fieldName string, Type string, fTType reflect.Type) {
-	log.Panicf("Error for %s.%s convert from '%s' to '%s'\n", aRows.SType, fieldName, Type, fTType)
+func (aRows *AllRows) ErrorConvertMessage(fieldName string, Type string, fTType reflect.Type) error {
+	_, file, line, _ := runtime.Caller(3)
+	return fmt.Errorf("Error in %s line %d for %s.%s convert from '%s' to '%s'\n",
+		file, line, aRows.SType, fieldName, Type, fTType)
 }
 
 /* Select function */
 func (aRows *AllRows) convert_select(oRow OneRow, fStrType, fieldName string,
-	fTType reflect.Type) ConvertData {
+	fTType reflect.Type) (ConvertData, error) {
 
 	if aRows.Log > 1 {
 		oRow.Log = true
 	}
 
-	if f, b := aRows.convert_func_slice(oRow, fStrType, fieldName, fTType); b {
-		return f
+	if f, b, err := aRows.convert_func_slice(oRow, fStrType, fieldName, fTType); b {
+		return f, nil
+	} else if err != nil {
+		return nil, err
 	}
-	if f, b := aRows.convert_func_no_slice_int(oRow, fStrType, fieldName, fTType); b {
-		return f
+	if f, b, err := aRows.convert_func_no_slice_int(oRow, fStrType, fieldName, fTType); b {
+		return f, nil
+	} else if err != nil {
+		return nil, err
 	}
-	if f, b := aRows.convert_func_no_slice_text(oRow, fStrType, fieldName, fTType); b {
-		return f
+	if f, b, err := aRows.convert_func_no_slice_text(oRow, fStrType, fieldName, fTType); b {
+		return f, nil
+	} else if err != nil {
+		return nil, err
 	}
-	if f, b := aRows.convert_func_no_slice_num(oRow, fStrType, fieldName, fTType); b {
-		return f
+	if f, b, err := aRows.convert_func_no_slice_num(oRow, fStrType, fieldName, fTType); b {
+		return f, nil
+	} else if err != nil {
+		return nil, err
 	}
-	if f, b := aRows.convert_func_no_slice_real(oRow, fStrType, fieldName, fTType); b {
-		return f
+	if f, b, err := aRows.convert_func_no_slice_real(oRow, fStrType, fieldName, fTType); b {
+		return f, nil
+	} else if err != nil {
+		return nil, err
 	}
-	if f, b := aRows.convert_func_no_slice_bool(oRow, fStrType, fieldName, fTType); b {
-		return f
+	if f, b, err := aRows.convert_func_no_slice_bool(oRow, fStrType, fieldName, fTType); b {
+		return f, nil
+	} else if err != nil {
+		return nil, err
 	}
-	if f, b := aRows.convert_func_no_slice_json(oRow, fStrType, fieldName, fTType); b {
-		return f
+	if f, b, err := aRows.convert_func_no_slice_json(oRow, fStrType, fieldName, fTType); b {
+		return f, nil
+	} else if err != nil {
+		return nil, err
 	}
-	if f, b := aRows.convert_func_no_slice_bytea(oRow, fStrType, fieldName, fTType); b {
-		return f
+	if f, b, err := aRows.convert_func_no_slice_bytea(oRow, fStrType, fieldName, fTType); b {
+		return f, nil
+	} else if err != nil {
+		return nil, err
 	}
-	if f, b := aRows.convert_func_no_slice_datetime(oRow, fStrType, fieldName, fTType); b {
-		return f
+	if f, b, err := aRows.convert_func_no_slice_datetime(oRow, fStrType, fieldName, fTType); b {
+		return f, nil
+	} else if err != nil {
+		return nil, err
 	}
-	aRows.PanicConvert(fieldName, oRow.Type, fTType)
-	return nil
+
+	return nil, aRows.ErrorConvertMessage(fieldName, oRow.Type, fTType)
 }
 
 func IsNotNilValue(data interface{}, field reflect.Value, fieldTypeType reflect.Type) bool {
@@ -102,12 +122,12 @@ func IsNotNilValue(data interface{}, field reflect.Value, fieldTypeType reflect.
 
 /* IS ARRAYS or SLICE */
 func (aRows *AllRows) convert_func_slice(oRow OneRow, fStrType, fieldName string,
-	fTType reflect.Type) (ConvertData, bool) {
+	fTType reflect.Type) (ConvertData, bool, error) {
 
 	var fn ConvertData
 
 	if findArrayReg.FindString(oRow.Type) == "" || findNoTimeReg.FindString(oRow.Type) != "" {
-		return fn, false
+		return fn, false, nil
 	}
 
 	if fStrType == "[]int" || fStrType == "[]int64" {
@@ -156,7 +176,7 @@ func (aRows *AllRows) convert_func_slice(oRow OneRow, fStrType, fieldName string
 				return nil
 			}
 		}
-		return fn, true
+		return fn, true, nil
 	}
 
 	if fStrType == "[]uint" || fStrType == "[]byte" || fStrType == "[]uint8" || fStrType == "[]uint64" {
@@ -218,7 +238,7 @@ func (aRows *AllRows) convert_func_slice(oRow OneRow, fStrType, fieldName string
 				return nil
 			}
 		}
-		return fn, true
+		return fn, true, nil
 	}
 
 	if fStrType == "[]string" {
@@ -250,7 +270,7 @@ func (aRows *AllRows) convert_func_slice(oRow OneRow, fStrType, fieldName string
 				return nil
 			}
 		}
-		return fn, true
+		return fn, true, nil
 	}
 
 	if fStrType == "[]float32" || fStrType == "[]float64" {
@@ -267,7 +287,7 @@ func (aRows *AllRows) convert_func_slice(oRow OneRow, fStrType, fieldName string
 			}
 			return nil
 		}
-		return fn, true
+		return fn, true, nil
 	}
 
 	if fStrType == "[]bool" {
@@ -279,19 +299,19 @@ func (aRows *AllRows) convert_func_slice(oRow OneRow, fStrType, fieldName string
 			}
 			return nil
 		}
-		return fn, true
+		return fn, true, nil
 	}
 
-	return fn, false
+	return fn, false, nil
 }
 
 /* IS --NOT--- ARRAYS or SLICE */
 func (aRows *AllRows) convert_func_no_slice_int(oRow OneRow, fStrType, fieldName string,
-	fTType reflect.Type) (ConvertData, bool) {
+	fTType reflect.Type) (ConvertData, bool, error) {
 	var fn ConvertData
 
 	if findIntReg.FindString(oRow.Type) == "" {
-		return fn, false
+		return fn, false, nil
 	}
 
 	switch fStrType {
@@ -373,17 +393,17 @@ func (aRows *AllRows) convert_func_no_slice_int(oRow OneRow, fStrType, fieldName
 			return nil
 		}
 	default:
-		aRows.PanicConvert(fieldName, oRow.Type, fTType)
+		return nil, false, aRows.ErrorConvertMessage(fieldName, oRow.Type, fTType)
 	}
-	return fn, true
+	return fn, true, nil
 }
 
 func (aRows *AllRows) convert_func_no_slice_text(oRow OneRow, fStrType, fieldName string,
-	fTType reflect.Type) (ConvertData, bool) {
+	fTType reflect.Type) (ConvertData, bool, error) {
 
 	var fn ConvertData
 	if findTextReg.FindString(oRow.Type) == "" {
-		return fn, false
+		return fn, false, nil
 	}
 
 	switch fStrType {
@@ -498,17 +518,17 @@ func (aRows *AllRows) convert_func_no_slice_text(oRow OneRow, fStrType, fieldNam
 			return nil
 		}
 	default:
-		aRows.PanicConvert(fieldName, oRow.Type, fTType)
+		return nil, false, aRows.ErrorConvertMessage(fieldName, oRow.Type, fTType)
 	}
-	return fn, true
+	return fn, true, nil
 }
 
 func (aRows *AllRows) convert_func_no_slice_num(oRow OneRow, fStrType, fieldName string,
-	fTType reflect.Type) (ConvertData, bool) {
+	fTType reflect.Type) (ConvertData, bool, error) {
 
 	var fn ConvertData
 	if findNumericReg.FindString(oRow.Type) == "" {
-		return fn, false
+		return fn, false, nil
 	}
 
 	switch fStrType {
@@ -606,18 +626,18 @@ func (aRows *AllRows) convert_func_no_slice_num(oRow OneRow, fStrType, fieldName
 			return nil
 		}
 	default:
-		aRows.PanicConvert(fieldName, oRow.Type, fTType)
+		return nil, false, aRows.ErrorConvertMessage(fieldName, oRow.Type, fTType)
 	}
 
-	return fn, true
+	return fn, true, nil
 }
 
 func (aRows *AllRows) convert_func_no_slice_real(oRow OneRow, fStrType, fieldName string,
-	fTType reflect.Type) (ConvertData, bool) {
+	fTType reflect.Type) (ConvertData, bool, error) {
 
 	var fn ConvertData
 	if findRealReg.FindString(oRow.Type) == "" {
-		return fn, false
+		return fn, false, nil
 	}
 
 	switch fStrType {
@@ -693,18 +713,18 @@ func (aRows *AllRows) convert_func_no_slice_real(oRow OneRow, fStrType, fieldNam
 			return nil
 		}
 	default:
-		aRows.PanicConvert(fieldName, oRow.Type, fTType)
+		return nil, false, aRows.ErrorConvertMessage(fieldName, oRow.Type, fTType)
 	}
 
-	return fn, true
+	return fn, true, nil
 }
 
 func (aRows *AllRows) convert_func_no_slice_bool(oRow OneRow, fStrType, fieldName string,
-	fTType reflect.Type) (ConvertData, bool) {
+	fTType reflect.Type) (ConvertData, bool, error) {
 
 	var fn ConvertData
 	if findBoolReg.FindString(oRow.Type) == "" {
-		return fn, false
+		return fn, false, nil
 	}
 
 	switch fStrType {
@@ -869,17 +889,17 @@ func (aRows *AllRows) convert_func_no_slice_bool(oRow OneRow, fStrType, fieldNam
 			return nil
 		}
 	default:
-		aRows.PanicConvert(fieldName, oRow.Type, fTType)
+		return nil, false, aRows.ErrorConvertMessage(fieldName, oRow.Type, fTType)
 	}
-	return fn, true
+	return fn, true, nil
 }
 
 func (aRows *AllRows) convert_func_no_slice_json(oRow OneRow, fStrType, fieldName string,
-	fTType reflect.Type) (ConvertData, bool) {
+	fTType reflect.Type) (ConvertData, bool, error) {
 
 	var fn ConvertData
 	if findJsonReg.FindString(oRow.Type) == "" {
-		return fn, false
+		return fn, false, nil
 	}
 
 	switch fStrType {
@@ -912,17 +932,17 @@ func (aRows *AllRows) convert_func_no_slice_json(oRow OneRow, fStrType, fieldNam
 			return nil
 		}
 	default:
-		aRows.PanicConvert(fieldName, oRow.Type, fTType)
+		return nil, false, aRows.ErrorConvertMessage(fieldName, oRow.Type, fTType)
 	}
-	return fn, true
+	return fn, true, nil
 }
 
 func (aRows *AllRows) convert_func_no_slice_bytea(oRow OneRow, fStrType, fieldName string,
-	fTType reflect.Type) (ConvertData, bool) {
+	fTType reflect.Type) (ConvertData, bool, error) {
 
 	var fn ConvertData
 	if findByteaReg.FindString(oRow.Type) == "" {
-		return fn, false
+		return fn, false, nil
 	}
 
 	switch fStrType {
@@ -945,10 +965,10 @@ func (aRows *AllRows) convert_func_no_slice_bytea(oRow OneRow, fStrType, fieldNa
 			return nil
 		}
 	default:
-		aRows.PanicConvert(fieldName, oRow.Type, fTType)
+		return nil, false, aRows.ErrorConvertMessage(fieldName, oRow.Type, fTType)
 	}
 
-	return fn, true
+	return fn, true, nil
 }
 
 func (oRow OneRow) prepare_no_slice_datetime(data interface{}, fieldName string) (time.Time, error) {
@@ -967,11 +987,11 @@ func (oRow OneRow) prepare_no_slice_datetime(data interface{}, fieldName string)
 }
 
 func (aRows *AllRows) convert_func_no_slice_datetime(oRow OneRow, fStrType, fieldName string,
-	fTType reflect.Type) (ConvertData, bool) {
+	fTType reflect.Type) (ConvertData, bool, error) {
 
 	var fn ConvertData
 	if findTimeReg.FindString(oRow.Type) == "" {
-		return fn, false
+		return fn, false, nil
 	}
 
 	switch fStrType {
@@ -1087,8 +1107,8 @@ func (aRows *AllRows) convert_func_no_slice_datetime(oRow OneRow, fStrType, fiel
 			return nil
 		}
 	default:
-		aRows.PanicConvert(fieldName, oRow.Type, fTType)
+		return nil, false, aRows.ErrorConvertMessage(fieldName, oRow.Type, fTType)
 	}
 
-	return fn, true
+	return fn, true, nil
 }
