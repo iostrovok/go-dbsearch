@@ -117,6 +117,35 @@ func main() {
 }
 ```
 
+## Dependency Types ##
+
+| From Postgresql | To Strustrue | Additional  |
+| ------------- | :------------- | :----- |
+| bigint, smallintint, integer, serial, bigserial, smallserial | int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64, float32, float64, string |  |
+| bigint, smallintint, integer, serial, bigserial, smallserial | []int, []int64, []uint64, []float32, []float64, []string,  | Result is placed to first element of slice |
+| real, double ,numeric, decimal, money | int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64, float32, float64, string |  |
+| real, double, numeric, decimal, money | []int, []int64, []float32, []float64, []string,  | Result is placed to first element of slice |
+| bytea | []byte, []uint8, string |  |
+| json, jsonb | map[string]interface{}, string |  |
+| varchar, char, text | map[string]interface{} | Tag \`type:"json"\` is necessary |
+| varchar, char, text | string, int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64, float32, float64,  | |
+| varchar, char, text | []string, []int, []int64, []float32, []float64  |  Result is placed to first element of slice  |
+| boolean, bool | bool, boolean,  | it's honest boolean value |
+| boolean, bool | int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64, float32, float64,  | Result is 0 (false) or 1 (true)|
+| boolean, bool | string, | Result is "1" (false) or "" (true) |
+| boolean, bool  | []int, []int64, []uint, []uint8, []uint64, []float32, []float64, []string, []byte | Result is placed to first element of slice |
+| date, time, timestamp | time.Time, | Package "time" is used |
+| date, time, timestamp | string, | Result is string(t.Format("2006-01-02 15:04:05 -0700")) |
+| date, time, timestamp | int, int64, | Result is time.Unix() from package "time" |
+| date, time, timestamp | uint, uint64, | Result is time.Unix() from package "time". There is error for time.Unix() < 0 |
+| date, time, timestamp | float64, | Result is "float64(t.UnixNano()) / 1000" from package "time" |
+| date, time, timestamp | map[string]int, map[string]int64, | Result is map[string]int{					"year": t.Year(), "month": int(t.Month()), "day": t.Day(), "hour": t.Hour(), "minute": t.Minute(), "second": t.Second(), "nanosecond": t.Nanosecond(), "zone": int(t.Zone()), } |
+| date, time, timestamp | []int, []int64, | Result is []int{ t.Year(), int(t.Month()), t.Day(), t.Hour(), t.Minute(), t.Second(), t.Nanosecond(), int(t.Zone()), } |
+
+
+
+
+
 ### Connect/Init ###
 ```go
 
@@ -309,12 +338,14 @@ We can get json as map[string]interface{} and arrays from db.
 
 ```go
 
-type array_int_TestPlace struct {
-	Col1  []int 					`db:"col1" type:"[]bigint"`
-	Col2  []int 					`db:"col2" type:"[]smallint"`
-	Col3  []int 					`db:"col3" type:"[]int"`
-	Col4  []string 				 	`db:"col4" type:"[]string"`
-	Col5  map[string]interface{}	`db:"col5" type:"json"` // col6 has 'text', 'varchar', 'json' or 'jsonb' in table
+type ArrayPlace struct {
+	Col1  []in			`db:"col1" type:"[]bigint"`
+	Col2  []in			`db:"col2" type:"[]smallint"`
+	Col3  []in			`db:"col3" type:"[]int"`
+	Col4  []strin			`db:"col4" type:"[]string"`
+	
+       // col6 has 'text', 'varchar', 'json' or 'jsonb' type in table
+       Col5  map[string]interface{}	`db:"col5" type:"json"`
 }
 
 ### type Searcher ###
