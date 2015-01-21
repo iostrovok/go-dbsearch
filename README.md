@@ -119,21 +119,26 @@ func main() {
 
 ## Dependency Types ##
 
+## Simple Types ##
+
 | From Postgresql | To Strustrue | Additional  |
 | ------------- | :------------- | :----- |
 | bigint, smallintint, integer, serial, bigserial, smallserial | int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64, float32, float64, string |  |
 | bigint, smallintint, integer, serial, bigserial, smallserial | []int, []int64, []uint64, []float32, []float64, []string,  | Result is placed to first element of slice |
-| real, double ,numeric, decimal, money | int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64, float32, float64, string |  |
+| real, double, numeric, decimal, money | int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64, float32, float64, string |  |
 | real, double, numeric, decimal, money | []int, []int64, []float32, []float64, []string,  | Result is placed to first element of slice |
 | bytea | []byte, []uint8, string |  |
-| json, jsonb | map[string]interface{}, string |  |
-| varchar, char, text | map[string]interface{} | Tag \`type:"json"\` is necessary |
 | varchar, char, text | string, int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64, float32, float64,  | |
 | varchar, char, text | []string, []int, []int64, []float32, []float64  |  Result is placed to first element of slice  |
 | boolean, bool | bool, boolean,  | it's honest boolean value |
 | boolean, bool | int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64, float32, float64,  | Result is 0 (false) or 1 (true)|
-| boolean, bool | string, | Result is "1" (false) or "" (true) |
+| boolean, bool | string, | Result is "" (false) or "1" (true) |
 | boolean, bool  | []int, []int64, []uint, []uint8, []uint64, []float32, []float64, []string, []byte | Result is placed to first element of slice |
+
+## Date & Time ##
+
+| From Postgresql | To Strustrue | Additional  |
+| ------------- | :------------- | :----- |
 | date, time, timestamp | time.Time, | Package "time" is used |
 | date, time, timestamp | string, | Result is string(t.Format("2006-01-02 15:04:05 -0700")) |
 | date, time, timestamp | int, int64, | Result is time.Unix() from package "time" |
@@ -142,8 +147,22 @@ func main() {
 | date, time, timestamp | map[string]int, map[string]int64, | Result is map[string]int{					"year": t.Year(), "month": int(t.Month()), "day": t.Day(), "hour": t.Hour(), "minute": t.Minute(), "second": t.Second(), "nanosecond": t.Nanosecond(), "zone": int(t.Zone()), } |
 | date, time, timestamp | []int, []int64, | Result is []int{ t.Year(), int(t.Month()), t.Day(), t.Hour(), t.Minute(), t.Second(), t.Nanosecond(), int(t.Zone()), } |
 
+## JSON & JSONB ##
 
+| From Postgresql | To Strustrue | Additional  |
+| ------------- | :------------- | :----- |
+| json, jsonb | map[string]interface{}, string |  |
+| varchar, char, text | map[string]interface{} | Tag \`type:"json"\` is necessary |
 
+## ARRAYs ##
+
+| From Postgresql | To Strustrue | Additional  |
+| ------------- | :------------- | :----- |
+| []boolean, []bool | []int, []int64, []uint, []byte, []uint8, []uint64 | Result is 0 (false) or 1 (true)  |
+| []boolean, []bool | []string | Result is "" (false) or "1" (true)  |
+| []boolean, []bool | []bool ||
+| []varchar, []char, []text | []string, []int, []int64, []uint, []byte, []uint8, []uint64  ||
+| []bigint, []smallintint, []integer, []real, []double, []numeric, []decimal, []money | []string, []int, []int64, []uint, []byte, []uint8, []uint64  ||
 
 
 ### Connect/Init ###
