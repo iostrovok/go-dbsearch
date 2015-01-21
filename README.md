@@ -303,12 +303,26 @@ if err != nil {
 
 ```
 
+### JSON and ARRAY ###
+
+We can get json as map[string]interface{} and arrays from db.
+
+```go
+
+type array_int_TestPlace struct {
+	Col1  []int 					`db:"col1" type:"[]bigint"`
+	Col2  []int 					`db:"col2" type:"[]smallint"`
+	Col3  []int 					`db:"col3" type:"[]int"`
+	Col4  []string 				 	`db:"col4" type:"[]string"`
+	Col5  map[string]interface{}	`db:"col5" type:"json"` // col6 has 'text', 'varchar', 'json' or 'jsonb' in table
+}
+
 ### type Searcher ###
 
 ```go
 
 type Searcher struct {
-}
+}s
 
 ```
 
