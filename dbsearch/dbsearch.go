@@ -543,7 +543,11 @@ func parseArray(line string) []string {
 
 	for len(line) > 0 {
 		s := ""
-		if strings.Index(line, `"`) != 0 {
+		if strings.Index(line, `""`) == 0 {
+			/* Empty line */
+			s = ""
+			line = line[3:]
+		} else if strings.Index(line, `"`) != 0 {
 			s = unquotedRe.FindString(line)
 			line = line[strings.Index(line, ",")+1:]
 			s = strings.TrimSuffix(s, ",")
