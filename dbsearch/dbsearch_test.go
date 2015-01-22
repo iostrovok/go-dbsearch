@@ -3,9 +3,7 @@ package dbsearch
 import (
 	"log"
 	"os"
-	//"reflect"
 	"testing"
-	//"time"
 )
 
 const TEST_TIME_ZONE = "Europe/Berlin"
@@ -87,6 +85,7 @@ func Test_(t *testing.T) {
 	_01_Array_Int(t)
 	_02_Array_Float(t)
 	_03_Array_String(t)
+	_04_Array_String(t)
 }
 
 func _01_Array_Int(t *testing.T) {
@@ -137,6 +136,25 @@ func _03_Array_String(t *testing.T) {
 		if text_array2[i] != text_list2[i] {
 			log.Printf("Need: %s GET result: %s\n", text_array2[i], text_list2[i])
 			log.Printf("Need: %q GET result: %q\n", text_array2[i], text_list2[i])
+			t.Fatal("error parseArray")
+		}
+	}
+}
+
+/*  Check array with empty string */
+func _04_Array_String(t *testing.T) {
+
+	text_array := []string{
+		``, `UK`, `"`, ``,
+	}
+
+	text_line := `{"",UK,"\"",""}`
+	text_list := parseArray(text_line)
+
+	for i := range text_array {
+		if text_array[i] != text_list[i] {
+			log.Printf("Need: %s GET result: %s\n", text_array[i], text_list[i])
+			log.Printf("Need: %q GET result: %q\n", text_array[i], text_list[i])
 			t.Fatal("error parseArray")
 		}
 	}
