@@ -52,7 +52,6 @@ type Searcher struct {
 	logFull       bool
 	DieOnColsName bool
 	LastCols      []string
-	IsOneRec      bool
 }
 
 func (s *Searcher) Close() error {
@@ -153,7 +152,6 @@ func (s *Searcher) GetCount(sqlLine string, values []interface{}) (int, error) {
 }
 
 func (s *Searcher) GetOne(mType *AllRows, p interface{}, sqlLine string, values ...[]interface{}) error {
-	defer func() { s.IsOneRec = false }()
 
 	R, err := s._initGet(mType, p, sqlLine, values...)
 	if err != nil {
@@ -171,7 +169,6 @@ func (s *Searcher) GetOne(mType *AllRows, p interface{}, sqlLine string, values 
 }
 
 func (s *Searcher) Get(mType *AllRows, p interface{}, sqlLine string, values ...[]interface{}) error {
-	defer func() { s.IsOneRec = false }()
 
 	R, err := s._initGet(mType, p, sqlLine, values...)
 	if err != nil {
@@ -182,9 +179,6 @@ func (s *Searcher) Get(mType *AllRows, p interface{}, sqlLine string, values ...
 	for R.Rows.Next() {
 		resultStr := mType.GetRowResult(R)
 		sliceValue.Set(reflect.Append(sliceValue, reflect.Indirect(reflect.ValueOf(resultStr))))
-		if s.IsOneRec {
-			break
-		}
 	}
 
 	mCheckError(R.Rows.Err())
@@ -193,7 +187,6 @@ func (s *Searcher) Get(mType *AllRows, p interface{}, sqlLine string, values ...
 
 func (s *Searcher) GetFace(mType *AllRows, sqlLine string,
 	values ...[]interface{}) ([]map[string]interface{}, error) {
-	defer func() { s.IsOneRec = false }()
 
 	out := []map[string]interface{}{}
 
@@ -208,11 +201,7 @@ func (s *Searcher) GetFace(mType *AllRows, sqlLine string,
 		if err != nil {
 			return nil, err
 		}
-
 		out = append(out, resultStr)
-		if s.IsOneRec {
-			break
-		}
 	}
 
 	mCheckError(R.Rows.Err())
@@ -222,18 +211,24 @@ func (s *Searcher) GetFace(mType *AllRows, sqlLine string,
 func (s *Searcher) GetFaceOne(mType *AllRows, sqlLine string,
 	values ...[]interface{}) (map[string]interface{}, error) {
 
-	s.IsOneRec = true
 	out := map[string]interface{}{}
 
-	list, err := s.GetFace(mType, sqlLine, values...)
+	R, err := s._initGet(mType, nil, sqlLine, values...)
+	if err != nil {
+		return out, err
+	}
+	defer R.Rows.Close()
 
-	if err == nil {
-		if len(list) > 0 {
-			out = list[0]
+	for R.Rows.Next() {
+		out, err = mType.GetRowResultFace(R)
+		if err != nil {
+			return nil, err
 		}
+		break
 	}
 
-	return out, err
+	mCheckError(R.Rows.Err())
+	return out, nil
 }
 
 func mCheckError(err error) {
