@@ -15,6 +15,7 @@ func Test_Main(t *testing.T) {
 		_21_string(t, s)
 		_31_float64(t, s)
 		_51_json(t, s)
+		_52_json(t, s)
 		_61_bytea(t, s)
 		_61_getone_func_test(t, s)
 		_71_uint_func_test(t, s)
@@ -259,6 +260,30 @@ func _51_json(t *testing.T, s *Searcher) {
 	make_t_table(s, sql_create, sql_cols, sql_vals)
 	p := []json_TestPlace{}
 	s.Get(json_mTestType, &p, "SELECT * FROM public.test ORDER BY 1")
+}
+
+/* Test epmty json */
+func _52_json(t *testing.T, s *Searcher) {
+
+	sql_create := " CREATE TABLE public.test " +
+		"(col1 int, col2 text, col3 text, col4 json, col5 json ) "
+	sql_cols := "INSERT INTO test(col1, col2, col3, col4, col5 ) "
+	sql_vals := []string{
+		"VALUES (1, '{}', '', '{}'::json, '{}'::json )",
+		"VALUES (2, null, null, null, null )", // check null - nil
+	}
+
+	make_t_table(s, sql_create, sql_cols, sql_vals)
+	p := []json_TestPlace{}
+	s.Get(json_mTestType, &p, "SELECT * FROM public.test ORDER BY 1")
+
+	if p[0].Col3 != "" {
+		t.Fatalf("ERROR _52_json for empty Col3 \n")
+	}
+
+	if p[0].Col5 != "{}" {
+		t.Fatalf("ERROR _52_json for empty Col5 \n")
+	}
 }
 
 /*
