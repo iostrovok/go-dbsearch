@@ -525,7 +525,7 @@ func parseInt64Array(s interface{}) []int64 {
 
 		j, err := strconv.Atoi(v)
 		if err != nil {
-			log.Println(err)
+			//log.Println(err)
 			out[i] = 0
 			continue
 		}
