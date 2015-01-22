@@ -47,6 +47,9 @@ test-xsql-cover:
 	go tool cover -html=./tmp_fix.out -o xSql.html
 	rm ./tmp_fix.out ./tmp.out	
 
+test-o:
+	go test ./dbsearch/field.go ./dbsearch/convert_func.go ./dbsearch/mapstructure.go ./dbsearch/dbsearch.go ./dbsearch/dbsearch_test.go
+
 test-f:
 	go test ./dbsearch/field.go ./dbsearch/convert_func.go ./dbsearch/mapstructure.go ./dbsearch/dbsearch.go ./dbsearch/main_test.go ./dbsearch/dbsearch_test.go
 
@@ -71,7 +74,7 @@ test-e:
 test-i:
 	go test ./dbsearch/field.go ./dbsearch/convert_func.go ./dbsearch/mapstructure.go ./dbsearch/dbsearch.go ./dbsearch/interface_test.go ./dbsearch/dbsearch_test.go
 
-test-m: test-l test-a test-s test-f test-d test-e test-i test-c
+test-m: test-o test-l test-a test-s test-f test-d test-e test-i test-c
 
 test-full:
 	go test ./dbsearch/array_test.go ./dbsearch/autoload_test.go ./dbsearch/convert_func.go ./dbsearch/date_test.go ./dbsearch/dbsearch.go ./dbsearch/dbsearch_test.go ./dbsearch/empty_columns_test.go ./dbsearch/field.go ./dbsearch/interface_test.go ./dbsearch/main_test.go ./dbsearch/mapstructure.go ./dbsearch/slice_test.go
