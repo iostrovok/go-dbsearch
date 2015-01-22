@@ -409,16 +409,60 @@ var (
 
 	noNumberDots      = regexp.MustCompile(`[^-0-9\.,]+`)
 	noNumberDotsSplit = regexp.MustCompile(`(,|\s+)+`)
+
+	parseBoolArrayRe     = regexp.MustCompile(`[^FTft]+`)
+	parseBoolArrayReTail = regexp.MustCompile(`^[^FTft]+|[^FTft]+$`)
 )
 
-func parseBoolArray(s interface{}) []bool {
-	r := parseArray(_AnyToString(s))
+func parseBoolArrayForBool(s interface{}) []bool {
+	line := parseBoolArrayReTail.ReplaceAllString(_AnyToString(s), "")
+	r := parseBoolArrayRe.Split(line, -1)
 	out := make([]bool, len(r))
 	for i, v := range r {
-		if v == "T" || v == "t" {
+		if v == "t" || v == "T" {
 			out[i] = true
 		} else {
 			out[i] = false
+		}
+	}
+	return out
+}
+
+func parseBoolArrayForString(s interface{}) []bool {
+	r := parseArray(_AnyToString(s))
+	out := make([]bool, len(r))
+	for i, v := range r {
+		v := strings.TrimSpace(v)
+		if v == "" {
+			out[i] = false
+		} else {
+			out[i] = true
+		}
+	}
+	return out
+}
+
+func parseBoolArrayForReal(s interface{}) []bool {
+	r := parseFloat64Array(s)
+	out := make([]bool, len(r))
+	for i, v := range r {
+		if v == 0.0 {
+			out[i] = false
+		} else {
+			out[i] = true
+		}
+	}
+	return out
+}
+
+func parseBoolArrayForNumber(s interface{}) []bool {
+	r := parseInt64Array(s)
+	out := make([]bool, len(r))
+	for i, v := range r {
+		if v == 0 {
+			out[i] = false
+		} else {
+			out[i] = true
 		}
 	}
 	return out

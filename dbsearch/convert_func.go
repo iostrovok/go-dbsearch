@@ -291,13 +291,52 @@ func (aRows *AllRows) convert_func_slice(oRow OneRow, fStrType, fieldName string
 	}
 
 	if fStrType == "[]bool" {
-		fn = func(data interface{}, field reflect.Value) error {
-			oRow.DebugV(fieldName, fTType, data)
-			if IsNotNilValue(data, field, fTType) {
-				a := parseBoolArray(data)
-				field.Set(reflect.ValueOf(a))
+		switch oRow.Type {
+		case "[]boolean", "[]bool":
+			fn = func(data interface{}, field reflect.Value) error {
+				oRow.DebugV(fieldName, fTType, data)
+				if IsNotNilValue(data, field, fTType) {
+					a := parseBoolArrayForBool(data)
+					field.Set(reflect.ValueOf(a))
+				}
+				return nil
 			}
-			return nil
+		case "[]text", "[]varchar", "[]char":
+			fn = func(data interface{}, field reflect.Value) error {
+				oRow.DebugV(fieldName, fTType, data)
+				if IsNotNilValue(data, field, fTType) {
+					a := parseBoolArrayForString(data)
+					field.Set(reflect.ValueOf(a))
+				}
+				return nil
+			}
+		case "[]bigint", "[]smallint", "[]int", "[]integer":
+			fn = func(data interface{}, field reflect.Value) error {
+				oRow.DebugV(fieldName, fTType, data)
+				if IsNotNilValue(data, field, fTType) {
+					a := parseBoolArrayForNumber(data)
+					field.Set(reflect.ValueOf(a))
+				}
+				return nil
+			}
+		case "[]money", "[]numeric", "[]decimal", "[]real", "[]double":
+			fn = func(data interface{}, field reflect.Value) error {
+				oRow.DebugV(fieldName, fTType, data)
+				if IsNotNilValue(data, field, fTType) {
+					a := parseBoolArrayForReal(data)
+					field.Set(reflect.ValueOf(a))
+				}
+				return nil
+			}
+		default:
+			fn = func(data interface{}, field reflect.Value) error {
+				oRow.DebugV(fieldName, fTType, data)
+				if IsNotNilValue(data, field, fTType) {
+					a := parseBoolArrayForBool(data)
+					field.Set(reflect.ValueOf(a))
+				}
+				return nil
+			}
 		}
 		return fn, true, nil
 	}
