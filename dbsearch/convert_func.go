@@ -38,11 +38,19 @@ func (oRow OneRow) DebugV(fieldName string, fTType reflect.Type, data interface{
 
 func (aRows *AllRows) ErrorConvertRunTimeMessage(fieldName string, Type string,
 	fTType reflect.Type, err error, data interface{}) error {
-	_, file, line, _ := runtime.Caller(3)
-	return fmt.Errorf("Error in %s line %d for %s.%s convert data from '%s' to '%s'.\n"+
+
+	msg := "\n"
+	i := 5
+	for i > 0 {
+		i--
+		_, file, line, _ := runtime.Caller(i)
+		msg += fmt.Sprintf("Error in %s line %d\n", file, line)
+	}
+
+	return fmt.Errorf(msg+"\nfor %s.%s convert data from '%s' to '%s'.\n"+
 		"Error System: '%s'\n"+
 		"Date: %#v\n",
-		file, line, aRows.SType, fieldName, Type, fTType, err, data)
+		aRows.SType, fieldName, Type, fTType, err, data)
 }
 
 func (aRows *AllRows) PanicInitMessage(what, fieldName, Type string) string {
