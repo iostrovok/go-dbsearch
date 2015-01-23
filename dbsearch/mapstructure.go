@@ -1,7 +1,7 @@
 package dbsearch
 
 import (
-	"database/sql"
+	//"database/sql"
 	"fmt"
 	"log"
 	"reflect"
@@ -101,7 +101,7 @@ func (s *Searcher) _initGet(aRows *AllRows, p interface{}, sqlLine string,
 	}
 
 	s.LastCols = cols
-	R, err_rr := s.prepare_raw_result(aRows, cols)
+	R, err_rr := s.prepare_fork_raw_result(aRows, cols)
 	if err_rr != nil {
 		return nil, err_rr
 	}
@@ -110,8 +110,8 @@ func (s *Searcher) _initGet(aRows *AllRows, p interface{}, sqlLine string,
 
 	if s.log {
 		log.Printf("GetRowResultStr.Cols: %#v\n", R.Cols)
-		log.Printf("GetRowResultStr.Dest: %#v\n", R.Dest)
-		log.Printf("GetRowResultStr.RawResult: %#v\n", R.RawResult)
+		log.Printf("GetRowResultStr.Dest: %#v\n", R.DestL)
+		log.Printf("GetRowResultStr.RawResult: %#v\n", R.RawResultL)
 		log.Printf("GetRowResultStr.Rows: %#v\n", R.Rows)
 		log.Printf("GetRowResultStr.SkipList: %#v\n", R.SkipList)
 	}
@@ -119,21 +119,13 @@ func (s *Searcher) _initGet(aRows *AllRows, p interface{}, sqlLine string,
 	return R, nil
 }
 
-type GetRowResultStr struct {
-	Rows      *sql.Rows
-	Cols      []string
-	Dest      []interface{}
-	RawResult []interface{}
-	SkipList  map[int]bool
-}
-
 func (aRows *AllRows) GetRowResultFace(R *GetRowResultStr) (map[string]interface{}, error) {
 
-	mCheckError(R.Rows.Scan(R.Dest...))
+	mCheckError(R.Rows.Scan(R.DestL[0]...))
 
 	val := reflect.Indirect(reflect.New(aRows.SType).Elem())
 	out := map[string]interface{}{}
-	for i, raw := range R.RawResult {
+	for i, raw := range R.RawResultL[0] {
 		if !R.SkipList[i] {
 			continue
 		}
@@ -166,11 +158,22 @@ func (aRows *AllRows) GetRowResultFace(R *GetRowResultStr) (map[string]interface
 
 func (aRows *AllRows) GetRowResult(R *GetRowResultStr) interface{} {
 
-	mCheckError(R.Rows.Scan(R.Dest...))
+	d := R.DestL[0]
+	r := R.RawResultL[0]
+
+	log.Printf("\nD = =____::: %s\n", d)
+	log.Printf("\nR = =____::: %s\n", r)
+
+	mCheckError(R.Rows.Scan(d...))
+
+	log.Printf("\n=____::: %s\n", R.DestL[0])
+	log.Printf("\n=____::: %s\n", R.RawResultL[0])
 
 	resultDB := map[string]interface{}{}
-	for i, raw := range R.RawResult {
+	for i, raw := range r {
 		if R.SkipList[i] {
+			log.Printf("\n\n%d::: %s\n", i, raw)
+			log.Printf("%s\n", aRows.DBList[R.Cols[i]].Name)
 			resultDB[aRows.DBList[R.Cols[i]].Name] = raw
 		}
 	}
@@ -180,11 +183,16 @@ func (aRows *AllRows) GetRowResult(R *GetRowResultStr) interface{} {
 	return resultStr
 }
 
-func (s *Searcher) prepare_raw_result(aRows *AllRows, cols []string) (*GetRowResultStr, error) {
+func (s *Searcher) prepare_fork_raw_result(aRows *AllRows, cols []string) (*GetRowResultStr, error) {
 
 	SkipList := map[int]bool{}
-	rawResult := make([]interface{}, 0)
+
+	CountFork := 4
+	R := NewGetRowResult(CountFork)
+
 	for i := 0; i < len(cols); i++ {
+		R.ResetCountC()
+
 		t, find := aRows.DBList[cols[i]]
 		if !find {
 			if s.DieOnColsName {
@@ -192,44 +200,57 @@ func (s *Searcher) prepare_raw_result(aRows *AllRows, cols []string) (*GetRowRes
 			}
 
 			SkipList[i] = false
-			rawResult = append(rawResult, make([]byte, 0))
+			for R.AppendRawResult(make([]byte, 0)) {
+			}
 			continue
 		}
 		SkipList[i] = true
-
 		switch t.Type {
 		case "date", "time", "timestamp":
-			datetime := new(*time.Time)
-			//datetime := new(*pq.NullTime)
-			rawResult = append(rawResult, datetime)
+			m := new(*time.Time)
+			for R.AppendRawResult(*m) {
+				m = new(*time.Time)
+			}
 		case "int", "bigint", "smallint", "integer", "serial", "bigserial":
-			rawResult = append(rawResult, new(int))
-		case "real", "double", "numeric", "decimal", "money":
-			rawResult = append(rawResult, new(float64))
-		case "text", "varchar", "char", "bool":
-			rawResult = append(rawResult, new(string))
+			m := new(int)
+			for R.AppendRawResult(*m) {
+				m = new(int)
+			}
+		case "real", "double", "numeric", "decimal":
+			m := new(float64)
+			for R.AppendRawResult(*m) {
+				m = new(float64)
+			}
+		case "text", "varchar", "char", "bool", "money":
+			m := new(string)
+			for R.AppendRawResult(*m) {
+				m = new(string)
+			}
 		case "[]text", "[]varchar", "[]char", "[]bool",
 			"[]real", "[]double", "[]numeric", "[]decimal", "[]money",
 			"[]int", "[]bigint", "[]smallint", "[]integer":
-			rawResult = append(rawResult, make([]byte, 0))
+			m := make([]byte, 0)
+			for R.AppendRawResult(m) {
+				m = make([]byte, 0)
+			}
 		case "json", "jsonb":
-			rawResult = append(rawResult, make([]byte, 0))
+			m := make([]byte, 0)
+			for R.AppendRawResult(m) {
+				m = make([]byte, 0)
+			}
 		default:
-			rawResult = append(rawResult, make([]byte, 0))
+			m := make([]byte, 0)
+			for R.AppendRawResult(m) {
+				m = make([]byte, 0)
+			}
 		}
+
 	}
 
-	dest := make([]interface{}, len(cols)) // A temporary interface{} slice
-	for i, _ := range rawResult {
-		dest[i] = &rawResult[i] // Put pointers to each string in the interface slice
-	}
+	R.PassRawResult()
 
-	R := GetRowResultStr{
-		Cols:      cols,
-		Dest:      dest,
-		RawResult: rawResult,
-		SkipList:  SkipList,
-	}
+	R.SkipList = SkipList
+	R.Cols = cols
 
-	return &R, nil
+	return R, nil
 }
