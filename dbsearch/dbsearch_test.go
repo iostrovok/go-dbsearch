@@ -8,7 +8,7 @@ import (
 
 const TEST_TIME_ZONE = "Europe/Berlin"
 
-func init_test_data(t *testing.T) *Searcher {
+func init_test_data() *Searcher {
 	login := os.Getenv("PG_USER")
 	pass := os.Getenv("PG_PASSWD")
 	host := os.Getenv("PG_HOST")
@@ -44,7 +44,7 @@ func init_test_data(t *testing.T) *Searcher {
 
 	dbh, err := DBI(2, dsn, true)
 	if err != nil {
-		t.Fatal(err)
+		log.Panicf("%s\n", err)
 	}
 
 	dbh.Do("DROP TABLE IF EXISTS public.test")

@@ -5,7 +5,7 @@ import (
 )
 
 func Test_Exception(t *testing.T) {
-	s := init_test_data(t)
+	s := init_test_data()
 	s.SetDebug(false)
 	if s != nil {
 		//_01_exception_load_test(t, s)

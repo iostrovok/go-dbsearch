@@ -6,7 +6,7 @@ import (
 )
 
 func Test_Main(t *testing.T) {
-	s := init_test_data(t)
+	s := init_test_data()
 	if s != nil {
 		_01_int32(t, s)
 		_02_int64(t, s)
@@ -68,6 +68,13 @@ func _01_int32(t *testing.T, s *Searcher) {
 	main_f_test_table(s)
 	p := []int32_TestPlace{}
 	s.Get(int32_mTestType, &p, "SELECT * FROM public.test ORDER BY 1")
+	_check_len_slice(t, len(p), "_01_int32")
+}
+
+func _check_len_slice(t *testing.T, l int, line string) {
+	if l != 3 {
+		t.Fatalf("Bad len of array: %s. Now len is %d, must be %d\n", line, l, 3)
+	}
 }
 
 /*

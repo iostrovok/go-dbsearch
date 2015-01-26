@@ -6,7 +6,7 @@ import (
 )
 
 func Test_Slice(t *testing.T) {
-	s := init_test_data(t)
+	s := init_test_data()
 	if s != nil {
 		_01_slice_int(t, s)
 		_02_slice_int64(t, s)

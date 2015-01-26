@@ -6,7 +6,7 @@ import (
 )
 
 func Test_AutoLoad(t *testing.T) {
-	s := init_test_data(t)
+	s := init_test_data()
 	s.SetDebug(false)
 	if s != nil {
 		_00_autoload_test(t, s)

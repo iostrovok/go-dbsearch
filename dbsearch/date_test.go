@@ -8,7 +8,7 @@ import (
 )
 
 func Test_DateTime(t *testing.T) {
-	s := init_test_data(t)
+	s := init_test_data()
 	if s != nil {
 		_01_datetime_string(t, s)
 		_11_datetime_int(t, s)

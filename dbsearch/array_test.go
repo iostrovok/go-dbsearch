@@ -6,7 +6,7 @@ import (
 )
 
 func Test_Array(t *testing.T) {
-	s := init_test_data(t)
+	s := init_test_data()
 	if s != nil {
 		_01_array_int(t, s)
 		_02_array_int64(t, s)

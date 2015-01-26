@@ -6,7 +6,7 @@ import (
 )
 
 func Test_Interface(t *testing.T) {
-	s := init_test_data(t)
+	s := init_test_data()
 	s.SetDebug(false)
 	if s != nil {
 		_01_interface_load(t, s, false)

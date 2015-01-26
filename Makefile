@@ -7,6 +7,7 @@ DBS := ${ROOT}/dbsearch
 BIN  := ${ROOT}/bin
 #export GOBIN := ${ROOT}/bin
 export GOPATH := ${MPST}:${GOPATH}:${ROOT}:${XSQL}:${DBS}
+export GOPATH := /kmsearch/go_path_tmp/:${ROOT}
 export PG_USER := postgres
 export PG_PASSWD := 
 export PG_HOST := 127.0.0.1
@@ -46,6 +47,10 @@ test-xsql-cover:
 	sed 's/command-line-arguments/\.\/dbsearch\/xSql/' < ./tmp.out > ./tmp_fix.out
 	go tool cover -html=./tmp_fix.out -o xSql.html
 	rm ./tmp_fix.out ./tmp.out	
+
+
+test-speed:
+	go test  -bench=".*" ./dbsearch/result.go ./dbsearch/field.go ./dbsearch/convert_func.go ./dbsearch/mapstructure.go ./dbsearch/dbsearch.go ./dbsearch/dbsearch_test.go ./dbsearch/speed_test.go 
 
 test-o:
 	go test ./dbsearch/result.go ./dbsearch/field.go ./dbsearch/convert_func.go ./dbsearch/mapstructure.go ./dbsearch/dbsearch.go ./dbsearch/dbsearch_test.go

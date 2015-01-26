@@ -6,7 +6,7 @@ import (
 )
 
 func Test_EmptyLoad(t *testing.T) {
-	s := init_test_data(t)
+	s := init_test_data()
 	s.SetDebug(false)
 	if s != nil {
 		_01_empty_load(t, s)
