@@ -4,7 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	//"github.com/iostrovok/go-dbsearch/dbsearch/sqler"
+	"github.com/iostrovok/go-dbsearch/dbsearch/sqler"
 	"github.com/iostrovok/go-iutils/iutils"
 	_ "github.com/lib/pq"
 	"log"
@@ -736,7 +736,6 @@ func (s *Searcher) Do(sql string, values ...interface{}) {
 	}
 }
 
-/*
 func (s *Searcher) Insert(table string, data map[string]interface{}) {
 	sql, values := sqler.InsertLine(table, data)
 	s.DoCommit(sql, values)
@@ -751,7 +750,7 @@ func (s *Searcher) Update(table string, data_where, data_update map[string]inter
 	sql, values := sqler.UpdateLine(table, data_update, data_where)
 	s.DoCommit(sql, values)
 }
-*/
+
 func (s *Searcher) DoCommit(sql string, values_in ...[]interface{}) {
 
 	values := []interface{}{}
