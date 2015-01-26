@@ -6,7 +6,7 @@ import (
 )
 
 func Test_Fork(t *testing.T) {
-	s := init_test_data(t)
+	s := init_test_data()
 	if s != nil {
 		_01_fork_test(t, s)
 	}
@@ -63,6 +63,6 @@ var fork_01_mTestType *AllRows = &AllRows{
 
 func _01_fork_test(t *testing.T, s *Searcher) {
 	main_fork_test_table(s, 1000)
-	p := []fork_01_mTestType{}
+	p := []fork_01_TestPlace{}
 	s.Get(fork_01_mTestType, &p, "SELECT * FROM public.test ORDER BY 1")
 }
