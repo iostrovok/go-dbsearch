@@ -159,8 +159,7 @@ func (s *Searcher) GetOne(mType *AllRows, p interface{}, sqlLine string, values 
 	}
 	defer R.Rows.Close()
 	for R.Rows.Next() {
-		mCheckError(R.Rows.Scan(R.Dest...))
-		resultStr := mType.GetRowResult(&EnvelopeRowResult{N: 0, R: R})
+		resultStr := mType.GetRowResult(R)
 		reflect.Indirect(reflect.ValueOf(p)).Set(reflect.Indirect(reflect.ValueOf(resultStr)))
 		break
 	}
@@ -169,36 +168,68 @@ func (s *Searcher) GetOne(mType *AllRows, p interface{}, sqlLine string, values 
 	return nil
 }
 
-type EnvelopeFull struct {
-	Res map[int]interface{}
-}
-
 func (s *Searcher) Get(mType *AllRows, p interface{}, sqlLine string, values ...[]interface{}) error {
-
-	CountFork := 4
-	var wg sync.WaitGroup
 
 	R, err := s._initGet(mType, p, sqlLine, values...)
 	if err != nil {
 		return err
 	}
+
+	if R.UseFork && runtime.GOMAXPROCS(0) > 1 {
+		return s._GetFork(mType, p, R)
+	}
+	return s._GetNoFork(mType, p, R)
+}
+
+func (s *Searcher) GetNoFork(mType *AllRows, p interface{}, sqlLine string, values ...[]interface{}) error {
+
+	R, err := s._initGet(mType, p, sqlLine, values...)
+	if err != nil {
+		return err
+	}
+
+	return s._GetNoFork(mType, p, R)
+}
+
+func (s *Searcher) _GetNoFork(mType *AllRows, p interface{}, R *GetRowResultStr) error {
 	defer R.Rows.Close()
 
+	var sliceValue = reflect.Indirect(reflect.ValueOf(p))
+	for R.Rows.Next() {
+		resultStr := mType.GetRowResult(R)
+		sliceValue.Set(reflect.Append(sliceValue, reflect.Indirect(reflect.ValueOf(resultStr))))
+	}
+
+	mCheckError(R.Rows.Err())
+	return nil
+}
+
+func (s *Searcher) GetFork(mType *AllRows, p interface{}, sqlLine string, values ...[]interface{}) error {
+
+	R, err := s._initGet(mType, p, sqlLine, values...)
+	if err != nil {
+		return err
+	}
+	return s._GetFork(mType, p, R)
+}
+
+func (s *Searcher) _GetFork(mType *AllRows, p interface{}, R *GetRowResultStr) error {
+	defer R.Rows.Close()
+
+	CountFork := 4
+	var wg sync.WaitGroup
+
 	//dataCh := NewInDynChanBuffer()
-	resCh := make(chan *EnvelopeRowResult, CountFork*100)
-	sendCh0 := make(chan *EnvelopeRowResult, CountFork*100)
-	sendCh1 := make(chan *EnvelopeRowResult, CountFork*100)
-	sendCh2 := make(chan *EnvelopeRowResult, CountFork*100)
-	sendCh3 := make(chan *EnvelopeRowResult, CountFork*100)
+	resCh := make(chan *EnvelopeRowResult, 2*CountFork)
+	sendCh := make([]chan *EnvelopeRowResult, CountFork)
+	for i := 0; i < CountFork; i++ {
+		sendCh[i] = make(chan *EnvelopeRowResult, 1)
+		go GetRowResultRoutine(i, sendCh[i], resCh)
+	}
 
 	checkValue := &EnvelopeFull{
 		Res: map[int]interface{}{},
 	}
-
-	go GetRowResultRoutine(0, sendCh0, resCh)
-	go GetRowResultRoutine(1, sendCh1, resCh)
-	go GetRowResultRoutine(2, sendCh2, resCh)
-	go GetRowResultRoutine(3, sendCh3, resCh)
 
 	wg.Add(1)
 
@@ -245,27 +276,23 @@ func (s *Searcher) Get(mType *AllRows, p interface{}, sqlLine string, values ...
 			}
 
 			select {
-			case sendCh0 <- &E:
-			case sendCh1 <- &E:
-			case sendCh2 <- &E:
-			case sendCh3 <- &E:
+			case sendCh[0] <- &E:
+			case sendCh[1] <- &E:
+			case sendCh[2] <- &E:
+			case sendCh[3] <- &E:
 			}
 		}
 	}
 
 	var sliceValue = reflect.Indirect(reflect.ValueOf(p))
-	close(sendCh0)
-	close(sendCh1)
-	close(sendCh2)
-	close(sendCh3)
+	for i := 0; i < CountFork; i++ {
+		close(sendCh[i])
+	}
 	wg.Wait()
 	close(resCh)
 
-	//log.Printf("	len(checkValue.Res) =  %d\n", len(checkValue.Res))
-	//log.Printf("	checkValue.Res %#v\n", checkValue.Res)
 	for i := 0; i < len(checkValue.Res); i++ {
 		s := checkValue.Res[i]
-		//log.Printf("	checkValue.Res %d => %#v\n", i, checkValue.Res[i])
 		sliceValue.Set(reflect.Append(sliceValue, reflect.Indirect(reflect.ValueOf(s))))
 	}
 

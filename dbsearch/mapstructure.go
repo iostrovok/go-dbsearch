@@ -159,15 +159,24 @@ func (aRows *AllRows) GetRowResultFace(R *GetRowResultStr) (map[string]interface
 //func GetRowResultRoutine(Point int, dataCh <-chan *EnvelopeRowResult, resCh chan *EnvelopeRowResult) {
 func GetRowResultRoutine(Point int, dataCh, resCh chan *EnvelopeRowResult) {
 
+	lastE := &EnvelopeRowResult{Point: Point, IsLast: true}
 	can_run := true
 	for can_run {
 		var E *EnvelopeRowResult
 		select {
 		case E, can_run = <-dataCh:
 			if can_run {
-				E.Res = E.aRows.GetRowResult(E)
+				resultDB := map[string]interface{}{}
+				for i, raw := range E.RawResult {
+					if E.R.SkipList[i] {
+						resultDB[E.aRows.DBList[E.R.Cols[i]].Name] = raw
+					}
+				}
+				resultStr := reflect.New(E.aRows.SType).Interface()
+				mCheckError(convert(E.aRows.List, "", resultDB, resultStr))
+				E.Res = resultStr
 			} else {
-				E = &EnvelopeRowResult{Point: Point, IsLast: true}
+				E = lastE
 			}
 		}
 		select {
@@ -178,15 +187,17 @@ func GetRowResultRoutine(Point int, dataCh, resCh chan *EnvelopeRowResult) {
 		}
 	}
 
-	//
-	resCh <- &EnvelopeRowResult{Point: Point, IsLast: true}
+	resCh <- lastE
 }
 
-func (aRows *AllRows) GetRowResult(E *EnvelopeRowResult) interface{} {
+func (aRows *AllRows) GetRowResult(R *GetRowResultStr) interface{} {
+
+	mCheckError(R.Rows.Scan(R.Dest...))
+
 	resultDB := map[string]interface{}{}
-	for i, raw := range E.RawResult {
-		if E.R.SkipList[i] {
-			resultDB[aRows.DBList[E.R.Cols[i]].Name] = raw
+	for i, raw := range R.RawResult {
+		if R.SkipList[i] {
+			resultDB[aRows.DBList[R.Cols[i]].Name] = raw
 		}
 	}
 
@@ -198,9 +209,7 @@ func (aRows *AllRows) GetRowResult(E *EnvelopeRowResult) interface{} {
 func (s *Searcher) prepare_fork_raw_result(aRows *AllRows, cols []string) (*GetRowResultStr, error) {
 
 	SkipList := map[int]bool{}
-
-	CountFork := 4
-	R := NewGetRowResult(CountFork)
+	R := &GetRowResultStr{UseFork: false}
 
 	for i := 0; i < len(cols); i++ {
 		var fn ElemConvertFunc
@@ -243,14 +252,17 @@ func (s *Searcher) prepare_fork_raw_result(aRows *AllRows, cols []string) (*GetR
 			fn = func() interface{} {
 				return make([]byte, 0)
 			}
+			R.UseFork = true
 		case "json", "jsonb":
 			fn = func() interface{} {
 				return make([]byte, 0)
 			}
+			R.UseFork = true
 		default:
 			fn = func() interface{} {
 				return make([]byte, 0)
 			}
+			R.UseFork = true
 		}
 		R.DestFunL = append(R.DestFunL, fn)
 	}

@@ -14,8 +14,7 @@ type GetRowResultStr struct {
 	Dest      []interface{}
 	RawResult []interface{}
 	SkipList  map[int]bool
-	CountC    int
-	resCountC int
+	UseFork   bool
 }
 
 type EnvelopeRowResult struct {
@@ -28,11 +27,8 @@ type EnvelopeRowResult struct {
 	Res       interface{}
 }
 
-func NewGetRowResult(i int) *GetRowResultStr {
-	out := GetRowResultStr{
-		resCountC: 0,
-	}
-	return &out
+type EnvelopeFull struct {
+	Res map[int]interface{}
 }
 
 func (R *GetRowResultStr) PrepareDestFun() ([]interface{}, []interface{}) {
