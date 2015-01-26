@@ -204,6 +204,7 @@ func (s *Searcher) _GetNoFork(mType *AllRows, p interface{}, R *GetRowResultStr)
 	return nil
 }
 
+/* Force  */
 func (s *Searcher) GetFork(mType *AllRows, p interface{}, sqlLine string, values ...[]interface{}) error {
 
 	R, err := s._initGet(mType, p, sqlLine, values...)
@@ -751,7 +752,12 @@ func (s *Searcher) Update(table string, data_where, data_update map[string]inter
 	s.DoCommit(sql, values)
 }
 */
-func (s *Searcher) DoCommit(sql string, values []interface{}) {
+func (s *Searcher) DoCommit(sql string, values_in ...[]interface{}) {
+
+	values := []interface{}{}
+	if len(values_in) > 0 {
+		values = append(values, values_in[0])
+	}
 
 	if s.log {
 		log.Printf("DoCommit: %s\n", sql)
