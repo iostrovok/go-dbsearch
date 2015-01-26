@@ -110,8 +110,8 @@ func (s *Searcher) _initGet(aRows *AllRows, p interface{}, sqlLine string,
 
 	if s.log {
 		log.Printf("GetRowResultStr.Cols: %#v\n", R.Cols)
-		log.Printf("GetRowResultStr.Dest: %#v\n", R.DestL)
-		log.Printf("GetRowResultStr.RawResult: %#v\n", R.RawResultL)
+		log.Printf("GetRowResultStr.Dest: %#v\n", R.Dest)
+		log.Printf("GetRowResultStr.RawResult: %#v\n", R.RawResult)
 		log.Printf("GetRowResultStr.Rows: %#v\n", R.Rows)
 		log.Printf("GetRowResultStr.SkipList: %#v\n", R.SkipList)
 	}
@@ -121,11 +121,11 @@ func (s *Searcher) _initGet(aRows *AllRows, p interface{}, sqlLine string,
 
 func (aRows *AllRows) GetRowResultFace(R *GetRowResultStr) (map[string]interface{}, error) {
 
-	mCheckError(R.Rows.Scan(R.DestL[0]...))
+	mCheckError(R.Rows.Scan(R.Dest...))
 
 	val := reflect.Indirect(reflect.New(aRows.SType).Elem())
 	out := map[string]interface{}{}
-	for i, raw := range R.RawResultL[0] {
+	for i, raw := range R.RawResult {
 		if !R.SkipList[i] {
 			continue
 		}
@@ -156,25 +156,37 @@ func (aRows *AllRows) GetRowResultFace(R *GetRowResultStr) (map[string]interface
 	return out, nil
 }
 
-func (aRows *AllRows) GetRowResult(R *GetRowResultStr) interface{} {
+//func GetRowResultRoutine(Point int, dataCh <-chan *EnvelopeRowResult, resCh chan *EnvelopeRowResult) {
+func GetRowResultRoutine(Point int, dataCh, resCh chan *EnvelopeRowResult) {
 
-	d := R.DestL[0]
-	r := R.RawResultL[0]
+	can_run := true
+	for can_run {
+		var E *EnvelopeRowResult
+		select {
+		case E, can_run = <-dataCh:
+			if can_run {
+				E.Res = E.aRows.GetRowResult(E)
+			} else {
+				E = &EnvelopeRowResult{Point: Point, IsLast: true}
+			}
+		}
+		select {
+		case resCh <- E:
+		}
+		if !can_run {
+			return
+		}
+	}
 
-	log.Printf("\nD = =____::: %s\n", d)
-	log.Printf("\nR = =____::: %s\n", r)
+	//
+	resCh <- &EnvelopeRowResult{Point: Point, IsLast: true}
+}
 
-	mCheckError(R.Rows.Scan(d...))
-
-	log.Printf("\n=____::: %s\n", R.DestL[0])
-	log.Printf("\n=____::: %s\n", R.RawResultL[0])
-
+func (aRows *AllRows) GetRowResult(E *EnvelopeRowResult) interface{} {
 	resultDB := map[string]interface{}{}
-	for i, raw := range r {
-		if R.SkipList[i] {
-			log.Printf("\n\n%d::: %s\n", i, raw)
-			log.Printf("%s\n", aRows.DBList[R.Cols[i]].Name)
-			resultDB[aRows.DBList[R.Cols[i]].Name] = raw
+	for i, raw := range E.RawResult {
+		if E.R.SkipList[i] {
+			resultDB[aRows.DBList[E.R.Cols[i]].Name] = raw
 		}
 	}
 
@@ -191,7 +203,7 @@ func (s *Searcher) prepare_fork_raw_result(aRows *AllRows, cols []string) (*GetR
 	R := NewGetRowResult(CountFork)
 
 	for i := 0; i < len(cols); i++ {
-		R.ResetCountC()
+		var fn ElemConvertFunc
 
 		t, find := aRows.DBList[cols[i]]
 		if !find {
@@ -200,55 +212,50 @@ func (s *Searcher) prepare_fork_raw_result(aRows *AllRows, cols []string) (*GetR
 			}
 
 			SkipList[i] = false
-			for R.AppendRawResult(make([]byte, 0)) {
+
+			fn = func() interface{} {
+				return make([]byte, 0)
 			}
+			R.DestFunL = append(R.DestFunL, fn)
 			continue
 		}
 		SkipList[i] = true
 		switch t.Type {
 		case "date", "time", "timestamp":
-			m := new(*time.Time)
-			for R.AppendRawResult(*m) {
-				m = new(*time.Time)
+			fn = func() interface{} {
+				return new(*time.Time)
 			}
 		case "int", "bigint", "smallint", "integer", "serial", "bigserial":
-			m := new(int)
-			for R.AppendRawResult(*m) {
-				m = new(int)
+			fn = func() interface{} {
+				return new(int)
 			}
 		case "real", "double", "numeric", "decimal":
-			m := new(float64)
-			for R.AppendRawResult(*m) {
-				m = new(float64)
+			fn = func() interface{} {
+				return new(float64)
 			}
 		case "text", "varchar", "char", "bool", "money":
-			m := new(string)
-			for R.AppendRawResult(*m) {
-				m = new(string)
+			fn = func() interface{} {
+				return new(string)
 			}
 		case "[]text", "[]varchar", "[]char", "[]bool",
 			"[]real", "[]double", "[]numeric", "[]decimal", "[]money",
 			"[]int", "[]bigint", "[]smallint", "[]integer":
-			m := make([]byte, 0)
-			for R.AppendRawResult(m) {
-				m = make([]byte, 0)
+			fn = func() interface{} {
+				return make([]byte, 0)
 			}
 		case "json", "jsonb":
-			m := make([]byte, 0)
-			for R.AppendRawResult(m) {
-				m = make([]byte, 0)
+			fn = func() interface{} {
+				return make([]byte, 0)
 			}
 		default:
-			m := make([]byte, 0)
-			for R.AppendRawResult(m) {
-				m = make([]byte, 0)
+			fn = func() interface{} {
+				return make([]byte, 0)
 			}
 		}
-
+		R.DestFunL = append(R.DestFunL, fn)
 	}
 
-	R.PassRawResult()
-
+	R.Dest, R.RawResult = R.PrepareDestFun()
 	R.SkipList = SkipList
 	R.Cols = cols
 

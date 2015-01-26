@@ -4,46 +4,45 @@ import (
 	"database/sql"
 )
 
+// An action transitions stochastically to a resulting score.
+type ElemConvertFunc func() interface{}
+
 type GetRowResultStr struct {
-	Rows       *sql.Rows
-	Cols       []string
-	DestL      [][]interface{}
-	RawResultL [][]interface{}
-	SkipList   map[int]bool
-	CountC     int
-	resCountC  int
+	Rows      *sql.Rows
+	Cols      []string
+	DestFunL  []ElemConvertFunc
+	Dest      []interface{}
+	RawResult []interface{}
+	SkipList  map[int]bool
+	CountC    int
+	resCountC int
+}
+
+type EnvelopeRowResult struct {
+	N         int
+	R         *GetRowResultStr
+	RawResult []interface{}
+	aRows     *AllRows
+	IsLast    bool
+	Point     int
+	Res       interface{}
 }
 
 func NewGetRowResult(i int) *GetRowResultStr {
 	out := GetRowResultStr{
 		resCountC: 0,
 	}
-	out.SetCountC(i)
 	return &out
 }
 
-func (R *GetRowResultStr) ResetCountC() {
-	R.resCountC = R.CountC - 1
-}
+func (R *GetRowResultStr) PrepareDestFun() ([]interface{}, []interface{}) {
+	Dest := make([]interface{}, len(R.DestFunL))
+	RawResult := make([]interface{}, len(R.DestFunL))
 
-func (R *GetRowResultStr) SetCountC(i int) {
-	R.CountC = i
-	R.DestL = make([][]interface{}, R.CountC)
-	R.RawResultL = make([][]interface{}, R.CountC)
-}
-
-func (R *GetRowResultStr) AppendRawResult(s interface{}) bool {
-	if R.resCountC > -1 {
-		R.RawResultL[R.resCountC] = append(R.RawResultL[R.resCountC], s)
+	for i, v := range R.DestFunL {
+		RawResult[i] = v()
+		Dest[i] = &RawResult[i]
 	}
-	R.resCountC--
-	return R.resCountC >= 0
-}
 
-func (R *GetRowResultStr) PassRawResult() {
-	for i := range R.RawResultL {
-		for j := range R.RawResultL[i] {
-			R.DestL[i] = append(R.DestL[i], &R.RawResultL[i][j])
-		}
-	}
+	return Dest, RawResult
 }

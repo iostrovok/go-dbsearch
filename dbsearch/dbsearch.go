@@ -4,7 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"github.com/iostrovok/go-dbsearch/dbsearch/sqler"
+	//"github.com/iostrovok/go-dbsearch/dbsearch/sqler"
 	"github.com/iostrovok/go-iutils/iutils"
 	_ "github.com/lib/pq"
 	"log"
@@ -159,7 +159,8 @@ func (s *Searcher) GetOne(mType *AllRows, p interface{}, sqlLine string, values 
 	}
 	defer R.Rows.Close()
 	for R.Rows.Next() {
-		resultStr := mType.GetRowResult(R)
+		mCheckError(R.Rows.Scan(R.Dest...))
+		resultStr := mType.GetRowResult(&EnvelopeRowResult{N: 0, R: R})
 		reflect.Indirect(reflect.ValueOf(p)).Set(reflect.Indirect(reflect.ValueOf(resultStr)))
 		break
 	}
@@ -168,17 +169,104 @@ func (s *Searcher) GetOne(mType *AllRows, p interface{}, sqlLine string, values 
 	return nil
 }
 
+type EnvelopeFull struct {
+	Res map[int]interface{}
+}
+
 func (s *Searcher) Get(mType *AllRows, p interface{}, sqlLine string, values ...[]interface{}) error {
+
+	CountFork := 4
+	var wg sync.WaitGroup
 
 	R, err := s._initGet(mType, p, sqlLine, values...)
 	if err != nil {
 		return err
 	}
 	defer R.Rows.Close()
+
+	//dataCh := NewInDynChanBuffer()
+	resCh := make(chan *EnvelopeRowResult, CountFork*100)
+	sendCh0 := make(chan *EnvelopeRowResult, CountFork*100)
+	sendCh1 := make(chan *EnvelopeRowResult, CountFork*100)
+	sendCh2 := make(chan *EnvelopeRowResult, CountFork*100)
+	sendCh3 := make(chan *EnvelopeRowResult, CountFork*100)
+
+	checkValue := &EnvelopeFull{
+		Res: map[int]interface{}{},
+	}
+
+	go GetRowResultRoutine(0, sendCh0, resCh)
+	go GetRowResultRoutine(1, sendCh1, resCh)
+	go GetRowResultRoutine(2, sendCh2, resCh)
+	go GetRowResultRoutine(3, sendCh3, resCh)
+
+	wg.Add(1)
+
+	CheckCountFork := 4
+	go func() {
+		defer wg.Done()
+		for {
+			select {
+			case res := <-resCh:
+				if res.IsLast {
+					CheckCountFork--
+					if CheckCountFork == 0 {
+						return
+					}
+				} else {
+					checkValue.Res[res.N] = res.Res
+				}
+			}
+		}
+	}()
+
+	N := -1
+	cycle := true
+	for cycle {
+
+		for i := 0; i < CountFork; i++ {
+
+			if !R.Rows.Next() {
+				cycle = false
+				break
+			}
+
+			N++
+
+			Dest, RawResult := R.PrepareDestFun()
+			mCheckError(R.Rows.Scan(Dest...))
+
+			E := EnvelopeRowResult{
+				aRows:     mType,
+				N:         N,
+				R:         R,
+				RawResult: RawResult,
+				IsLast:    false,
+			}
+
+			select {
+			case sendCh0 <- &E:
+			case sendCh1 <- &E:
+			case sendCh2 <- &E:
+			case sendCh3 <- &E:
+			}
+		}
+	}
+
 	var sliceValue = reflect.Indirect(reflect.ValueOf(p))
-	for R.Rows.Next() {
-		resultStr := mType.GetRowResult(R)
-		sliceValue.Set(reflect.Append(sliceValue, reflect.Indirect(reflect.ValueOf(resultStr))))
+	close(sendCh0)
+	close(sendCh1)
+	close(sendCh2)
+	close(sendCh3)
+	wg.Wait()
+	close(resCh)
+
+	//log.Printf("	len(checkValue.Res) =  %d\n", len(checkValue.Res))
+	//log.Printf("	checkValue.Res %#v\n", checkValue.Res)
+	for i := 0; i < len(checkValue.Res); i++ {
+		s := checkValue.Res[i]
+		//log.Printf("	checkValue.Res %d => %#v\n", i, checkValue.Res[i])
+		sliceValue.Set(reflect.Append(sliceValue, reflect.Indirect(reflect.ValueOf(s))))
 	}
 
 	mCheckError(R.Rows.Err())
@@ -620,6 +708,7 @@ func (s *Searcher) Do(sql string, values ...interface{}) {
 	}
 }
 
+/*
 func (s *Searcher) Insert(table string, data map[string]interface{}) {
 	sql, values := sqler.InsertLine(table, data)
 	s.DoCommit(sql, values)
@@ -634,7 +723,7 @@ func (s *Searcher) Update(table string, data_where, data_update map[string]inter
 	sql, values := sqler.UpdateLine(table, data_update, data_where)
 	s.DoCommit(sql, values)
 }
-
+*/
 func (s *Searcher) DoCommit(sql string, values []interface{}) {
 
 	if s.log {
