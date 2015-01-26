@@ -1,21 +1,108 @@
 package dbsearch
 
 import (
-	"log"
+	"runtime"
+	//"log"
 	"reflect"
 	"strconv"
 	"testing"
 )
 
-func Benchmark_TestSpeed(b *testing.B) {
+func Benchmark_TestSpeed_01(b *testing.B) {
+	runtime.GOMAXPROCS(8)
+	b.StopTimer() //stop the performance timer temporarily while doing initialization
 	s := init_test_data()
-	if s != nil {
-		_01_TestSpeedGet(b, s)
+	if s == nil {
+		b.Fatal("Benchmark_TestSpeed_02")
 	}
-	//b.Fatal("Success [no error] test")
+	main_speed_test_table(s, b, 40000)
+
+	b.StartTimer() //restart timer
+	for i := 0; i < b.N; i++ {
+		_select_TestSpeedGet(true, b, s, i*10)
+	}
 }
 
-func main_speed_test_table(s *Searcher, count int) {
+func Benchmark_TestSpeed_02(b *testing.B) {
+	runtime.GOMAXPROCS(8)
+	b.StopTimer() //stop the performance timer temporarily while doing initialization
+	s := init_test_data()
+	if s == nil {
+		b.Fatal("Benchmark_TestSpeed_02")
+	}
+	main_speed_test_table(s, b, 40000)
+
+	b.StartTimer() //restart timer
+	for i := 0; i < b.N; i++ {
+		_select_TestSpeedGet(false, b, s, i*10)
+	}
+}
+
+func Benchmark_TestSpeed_Json_03(b *testing.B) {
+	runtime.GOMAXPROCS(8)
+	b.StopTimer() //stop the performance timer temporarily while doing initialization
+	s := init_test_data()
+	if s == nil {
+		b.Fatal("Benchmark_TestSpeed_Json_03")
+	}
+	main_speed_struct_test_table(s, b, 40000)
+
+	b.StartTimer() //restart timer
+	for i := 0; i < b.N; i++ {
+		_select_TestSpeedJsonGet(false, b, s, i*10)
+	}
+}
+
+func Benchmark_TestSpeed_Json_04(b *testing.B) {
+	runtime.GOMAXPROCS(8)
+	b.StopTimer() //stop the performance timer temporarily while doing initialization
+	s := init_test_data()
+	if s == nil {
+		b.Fatal("Benchmark_TestSpeed_Json_04")
+	}
+	main_speed_struct_test_table(s, b, 40000)
+
+	b.StartTimer() //restart timer
+	for i := 0; i < b.N; i++ {
+		_select_TestSpeedJsonGet(true, b, s, i*10)
+	}
+}
+
+func main_speed_struct_test_table(s *Searcher, b *testing.B, count int) {
+	sql_create := " CREATE TABLE public.test " +
+		"( col1 serial, col2 json, col3 text, col4 integer[], col5 text[] )"
+
+	js := `'{"mail":"weq","top":"up","list":[1,2,3,5,"assadasd",1233.87],"bool_1":true,"bool_2":true,"inner":{"mail":"weq","top":"up","list":[1,2,3,5,"assadasd",1233.87],"bool_1":true,"bool_2":true}}'`
+	ar := `'{10,123,123213,-2323,4345,21232131,466856,123123}'`
+	txt := `'{Великобритания,UK,"\"United '' Kingdom","UK,United Kingdom of \"Great , Britain\" ` +
+		`and Northern Ireland","Соединенное Королевство Великобритании и Северной Ирландии","ВНУТРИ КАВЫКИ \",` +
+		`С ЗАПЯТОЙ","\"",1,"1-2: 1\"2\"",NULL,"single slash: \\\" and \\\\\""}'`
+
+	sql_cols := "INSERT INTO public.test(col2, col3, col4, col5) "
+	int_vals := []string{
+		" VALUES (" + js + "::json," + js + ", " + ar + "::integer[], " + txt + "::text[])",
+		" VALUES (" + js + "::json," + js + ", " + ar + "::integer[], " + txt + "::text[])",
+		" VALUES (" + js + "::json," + js + ", " + ar + "::integer[], " + txt + "::text[])",
+	}
+
+	sql_vals := []string{}
+	for count > 0 {
+		count--
+		sql_vals = append(sql_vals, int_vals...)
+	}
+
+	s.Do("DROP TABLE IF EXISTS public.test")
+	s.Do(sql_create)
+	for _, v := range sql_vals {
+		s.Do(sql_cols + v)
+	}
+
+	// Warmimg
+	_select_TestSpeedJsonGet(false, b, s, 100)
+	_select_TestSpeedJsonGet(true, b, s, 100)
+}
+
+func main_speed_test_table(s *Searcher, b *testing.B, count int) {
 	sql_create := " CREATE TABLE public.test " +
 		"(col1 int, col2 bigint, col3 smallint, col4 integer, " +
 		"col5 serial, col6 bigserial, col7 text, col8 varchar(50), col9 char(10), " +
@@ -35,7 +122,15 @@ func main_speed_test_table(s *Searcher, count int) {
 		sql_vals = append(sql_vals, int_vals...)
 	}
 
-	make_t_table(s, sql_create, sql_cols, sql_vals)
+	s.Do("DROP TABLE IF EXISTS public.test")
+	s.Do(sql_create)
+	for _, v := range sql_vals {
+		s.Do(sql_cols + v)
+	}
+
+	// Warmimg
+	_select_TestSpeedGet(false, b, s, 100)
+	_select_TestSpeedGet(true, b, s, 100)
 }
 
 /*
@@ -63,34 +158,42 @@ var speed_01_mTestType *AllRows = &AllRows{
 	SType: reflect.TypeOf(speed_01_TestPlace{}),
 }
 
-func _select_TestSpeedGet(b *testing.B, s *Searcher, N int) { //benchmark function starts with "Benchmark" and takes a pointer to type testing.B
-	// Warmimg
+func _select_TestSpeedGet(is_fork bool, b *testing.B, s *Searcher, N int) {
 	p := []speed_01_TestPlace{}
 	sql := "SELECT * FROM public.test ORDER BY 1 LIMIT " + strconv.Itoa(N)
-	log.Println(sql)
-	s.Get(speed_01_mTestType, &p, sql)
+	//log.Println(sql)
+	if is_fork {
+		s.GetFork(speed_01_mTestType, &p, sql)
+	} else {
+		s.Get(speed_01_mTestType, &p, sql)
+	}
 	if len(p) != N {
 		b.Fatalf("Bad resault for %d\n", N)
 	}
 }
 
-func _01_TestSpeedGet(b *testing.B, s *Searcher) { //benchmark function starts with "Benchmark" and takes a pointer to type testing.B
-	b.StopTimer() //stop the performance timer temporarily while doing initialization
-	log.Printf("_01_TestSpeedGet:: %d\n", 1)
+type speed_01_Json_TestPlace struct {
+	Col1 int                    `db:"col1" type:"serial"`
+	Col2 map[string]interface{} `db:"col2" type:"json"`
+	Col3 map[string]interface{} `db:"col3" type:"json"`
+	Col4 []int                  `db:"col4" type:"[]int"`
+	Col5 []string               `db:"col5" type:"[]text"`
+}
 
-	main_speed_test_table(s, 10000)
-	log.Printf("_01_TestSpeedGet:: %d\n", 2)
+var speed_01_Json_mTestType *AllRows = &AllRows{
+	SType: reflect.TypeOf(speed_01_Json_TestPlace{}),
+}
 
-	// Warmimg
-	_select_TestSpeedGet(b, s, 4)
-	log.Printf("_01_TestSpeedGet:: %d\n", 3)
-	_select_TestSpeedGet(b, s, 5)
-	log.Printf("_01_TestSpeedGet:: %d\n", 1000)
-
-	b.StartTimer() //restart timer
-	log.Printf("_01_TestSpeedGet:: %d\n", 5)
-	for i := 0; i < b.N; i++ {
-		log.Printf("i:: %d\n", i)
-		_select_TestSpeedGet(b, s, i*10)
+func _select_TestSpeedJsonGet(is_fork bool, b *testing.B, s *Searcher, N int) {
+	p := []speed_01_Json_TestPlace{}
+	sql := "SELECT * FROM public.test ORDER BY 1 LIMIT " + strconv.Itoa(N)
+	//log.Println(sql)
+	if is_fork {
+		s.GetFork(speed_01_Json_mTestType, &p, sql)
+	} else {
+		s.GetNoFork(speed_01_Json_mTestType, &p, sql)
+	}
+	if len(p) != N {
+		b.Fatalf("Bad resault for %d\n", N)
 	}
 }
