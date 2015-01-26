@@ -52,6 +52,10 @@ test-xsql-cover:
 test-speed:
 	go test  -bench=".*" ./dbsearch/result.go ./dbsearch/field.go ./dbsearch/convert_func.go ./dbsearch/mapstructure.go ./dbsearch/dbsearch.go ./dbsearch/dbsearch_test.go ./dbsearch/speed_test.go 
 
+test-fork:
+	go test  -bench=".*" ./dbsearch/result.go ./dbsearch/field.go ./dbsearch/convert_func.go ./dbsearch/mapstructure.go ./dbsearch/dbsearch.go ./dbsearch/dbsearch_test.go ./dbsearch/fork_test.go 
+
+
 test-o:
 	go test ./dbsearch/result.go ./dbsearch/field.go ./dbsearch/convert_func.go ./dbsearch/mapstructure.go ./dbsearch/dbsearch.go ./dbsearch/dbsearch_test.go
 
@@ -79,14 +83,14 @@ test-e:
 test-i:
 	go test ./dbsearch/result.go ./dbsearch/field.go ./dbsearch/convert_func.go ./dbsearch/mapstructure.go ./dbsearch/dbsearch.go ./dbsearch/interface_test.go ./dbsearch/dbsearch_test.go
 
-test-m: test-o test-l test-a test-s test-f test-d test-e test-i test-c
+test-m: test-fork test-o test-l test-a test-s test-f test-d test-e test-i test-c
 
 test-full:
 	go test ./dbsearch/array_test.go ./dbsearch/autoload_test.go ./dbsearch/convert_func.go ./dbsearch/date_test.go ./dbsearch/dbsearch.go ./dbsearch/dbsearch_test.go ./dbsearch/empty_columns_test.go ./dbsearch/field.go ./dbsearch/interface_test.go ./dbsearch/main_test.go ./dbsearch/mapstructure.go ./dbsearch/slice_test.go
 
 test-cover:
 	echo "Start recover"
-	go test -cover -coverprofile ./tmp.out ./dbsearch/autoload_test.go ./dbsearch/empty_columns_test.go ./dbsearch/interface_test.go ./dbsearch/array_test.go ./dbsearch/main_test.go ./dbsearch/date_test.go ./dbsearch/slice_test.go ./dbsearch/field.go ./dbsearch/convert_func.go ./dbsearch/mapstructure.go ./dbsearch/dbsearch.go ./dbsearch/dbsearch_test.go
+	go test -cover -coverprofile ./tmp.out  ./dbsearch/array_test.go ./dbsearch/autoload_test.go ./dbsearch/convert_func.go ./dbsearch/date_test.go ./dbsearch/dbsearch.go ./dbsearch/dbsearch_test.go ./dbsearch/empty_columns_test.go ./dbsearch/exception_test.go ./dbsearch/field.go ./dbsearch/fork_test.go ./dbsearch/interface_test.go ./dbsearch/main_test.go ./dbsearch/mapstructure.go ./dbsearch/result.go ./dbsearch/slice_test.go ./dbsearch/speed_test.go
 	echo "Start rendering"
 	sed 's/command-line-arguments/\.\/dbsearch/' < ./tmp.out > ./tmp_fix.out
 	go tool cover -html=./tmp_fix.out -o dbSerch.html

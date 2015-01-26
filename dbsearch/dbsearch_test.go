@@ -72,7 +72,7 @@ func init_test_data() *Searcher {
 }
 
 func make_t_table(dbh *Searcher, sql_create, sql_cols string, sql_vals []string) {
-	dbh.Do("DROP TABLE IF EXISTS public.test")
+	dbh.DoCommit("DROP TABLE IF EXISTS public.test")
 
 	dbh.Do(sql_create)
 

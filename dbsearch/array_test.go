@@ -10,6 +10,8 @@ func Test_Array(t *testing.T) {
 	if s != nil {
 		_01_array_int(t, s)
 		_02_array_int64(t, s)
+		_03_array_uint64(t, s)
+		_04_array_uint(t, s)
 		_11_array_bool(t, s)
 		_12_array_bool(t, s)
 		_21_array_string(t, s)
@@ -112,6 +114,106 @@ func _02_array_int64(t *testing.T, s *Searcher) {
 	array_main_f_test_table(s)
 	p := []array_int64_TestPlace{}
 	s.Get(array_int64_mTestType, &p, "SELECT * FROM public.test ORDER BY 1")
+
+	if p[0].Col2[0] != 9223372036854775807 {
+		t.Fatal("Error array_int_TestPlace.Col2; []int <= []bigint")
+	}
+	if p[0].Col3[0] != 18 {
+		t.Fatal("Error array_int_TestPlace.Col3; []int <= []smallint")
+	}
+	if p[0].Col4[0] != 884 {
+		t.Fatal("Error array_int_TestPlace.Col4; []int <= []int")
+	}
+	if p[0].Col7[0] != 10 {
+		t.Fatal("Error array_int_TestPlace.Col7; []int <= []text")
+	}
+	if p[0].Col8[1] != 0 {
+		t.Fatal("Error array_int_TestPlace.Col8; []int <= []varchar")
+	}
+	if p[0].Col16[0] != 1 {
+		t.Fatal("Error array_int_TestPlace.Col16; []int <= []bool")
+	}
+}
+
+/*
+
+	uint64 test
+*/
+
+type array_uint64_TestPlace struct {
+	Col1  int      `db:"col1" type:"int"`
+	Col2  []uint64 `db:"col2" type:"[]bigint"`
+	Col3  []uint64 `db:"col3" type:"[]smallint"`
+	Col4  []uint64 `db:"col4" type:"[]int"`
+	Col7  []uint64 `db:"col7" type:"[]text"`
+	Col8  []uint64 `db:"col8" type:"[]varchar"`
+	Col9  []uint64 `db:"col9" type:"[]char"`
+	Col11 []uint64 `db:"col11" type:"[]real"`
+	Col12 []uint64 `db:"col12" type:"[]double"`
+	Col13 []uint64 `db:"col13" type:"[]numeric"`
+	Col14 []uint64 `db:"col14" type:"[]decimal"`
+	Col15 []uint64 `db:"col15" type:"[]money"`
+	Col16 []uint64 `db:"col16" type:"[]bool"`
+}
+
+var array_uint64_mTestType *AllRows = &AllRows{
+	SType: reflect.TypeOf(array_uint64_TestPlace{}),
+}
+
+func _03_array_uint64(t *testing.T, s *Searcher) {
+	array_main_f_test_table(s)
+	p := []array_uint64_TestPlace{}
+	s.Get(array_uint64_mTestType, &p, "SELECT * FROM public.test ORDER BY 1")
+
+	if p[0].Col2[0] != 9223372036854775807 {
+		t.Fatal("Error array_int_TestPlace.Col2; []int <= []bigint")
+	}
+	if p[0].Col3[0] != 18 {
+		t.Fatal("Error array_int_TestPlace.Col3; []int <= []smallint")
+	}
+	if p[0].Col4[0] != 884 {
+		t.Fatal("Error array_int_TestPlace.Col4; []int <= []int")
+	}
+	if p[0].Col7[0] != 10 {
+		t.Fatal("Error array_int_TestPlace.Col7; []int <= []text")
+	}
+	if p[0].Col8[1] != 0 {
+		t.Fatal("Error array_int_TestPlace.Col8; []int <= []varchar")
+	}
+	if p[0].Col16[0] != 1 {
+		t.Fatal("Error array_int_TestPlace.Col16; []int <= []bool")
+	}
+}
+
+/*
+
+	uint test
+*/
+
+type array_uint_TestPlace struct {
+	Col1  int    `db:"col1" type:"int"`
+	Col2  []uint `db:"col2" type:"[]bigint"`
+	Col3  []uint `db:"col3" type:"[]smallint"`
+	Col4  []uint `db:"col4" type:"[]int"`
+	Col7  []uint `db:"col7" type:"[]text"`
+	Col8  []uint `db:"col8" type:"[]varchar"`
+	Col9  []uint `db:"col9" type:"[]char"`
+	Col11 []uint `db:"col11" type:"[]real"`
+	Col12 []uint `db:"col12" type:"[]double"`
+	Col13 []uint `db:"col13" type:"[]numeric"`
+	Col14 []uint `db:"col14" type:"[]decimal"`
+	Col15 []uint `db:"col15" type:"[]money"`
+	Col16 []uint `db:"col16" type:"[]bool"`
+}
+
+var array_uint_mTestType *AllRows = &AllRows{
+	SType: reflect.TypeOf(array_uint_TestPlace{}),
+}
+
+func _04_array_uint(t *testing.T, s *Searcher) {
+	array_main_f_test_table(s)
+	p := []array_uint_TestPlace{}
+	s.Get(array_uint_mTestType, &p, "SELECT * FROM public.test ORDER BY 1")
 
 	if p[0].Col2[0] != 9223372036854775807 {
 		t.Fatal("Error array_int_TestPlace.Col2; []int <= []bigint")
