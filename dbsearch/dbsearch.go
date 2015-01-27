@@ -130,6 +130,7 @@ func (s *Searcher) GetOne(mType *AllRows, p interface{}, sqlLine string, values 
 	}
 	defer R.Rows.Close()
 	for R.Rows.Next() {
+		mCheckError(R.Rows.Scan(R.Dest...))
 		resultStr := mType.GetRowResult(R)
 		reflect.Indirect(reflect.ValueOf(p)).Set(reflect.Indirect(reflect.ValueOf(resultStr)))
 		break
@@ -167,6 +168,7 @@ func (s *Searcher) _GetNoFork(mType *AllRows, p interface{}, R *GetRowResultStr)
 
 	var sliceValue = reflect.Indirect(reflect.ValueOf(p))
 	for R.Rows.Next() {
+		mCheckError(R.Rows.Scan(R.Dest...))
 		resultStr := mType.GetRowResult(R)
 		sliceValue.Set(reflect.Append(sliceValue, reflect.Indirect(reflect.ValueOf(resultStr))))
 	}
@@ -215,6 +217,9 @@ func (s *Searcher) _GetFork(mType *AllRows, p interface{}, R *GetRowResultStr) e
 					if CheckCountFork == 0 {
 						return
 					}
+				} else if res.Err != nil {
+					checkValue.Err = res.Err
+					return
 				} else {
 					checkValue.Res[res.N] = res.Res
 				}
@@ -260,8 +265,11 @@ func (s *Searcher) _GetFork(mType *AllRows, p interface{}, R *GetRowResultStr) e
 		close(sendCh[i])
 	}
 	wg.Wait()
-	close(resCh)
+	if checkValue.Err != nil {
+		return checkValue.Err
+	}
 
+	close(resCh)
 	for i := 0; i < len(checkValue.Res); i++ {
 		s := checkValue.Res[i]
 		sliceValue.Set(reflect.Append(sliceValue, reflect.Indirect(reflect.ValueOf(s))))
@@ -274,15 +282,35 @@ func (s *Searcher) _GetFork(mType *AllRows, p interface{}, R *GetRowResultStr) e
 func (s *Searcher) GetFace(mType *AllRows, sqlLine string,
 	values ...[]interface{}) ([]map[string]interface{}, error) {
 
-	out := []map[string]interface{}{}
+	R, err := s._initGet(mType, nil, sqlLine, values...)
+	if err != nil {
+		return []map[string]interface{}{}, err
+	}
+
+	if R.UseFork && runtime.GOMAXPROCS(0) > 1 {
+		return s._GetFaceFork(mType, R)
+	}
+	return s._GetFaceNoFork(mType, R)
+}
+
+func (s *Searcher) GetFaceNoFork(mType *AllRows, sqlLine string,
+	values ...[]interface{}) ([]map[string]interface{}, error) {
 
 	R, err := s._initGet(mType, nil, sqlLine, values...)
 	if err != nil {
-		return out, err
+		return []map[string]interface{}{}, err
 	}
+	return s._GetFaceNoFork(mType, R)
+}
+
+func (s *Searcher) _GetFaceNoFork(mType *AllRows,
+	R *GetRowResultStr) ([]map[string]interface{}, error) {
+
+	out := []map[string]interface{}{}
 	defer R.Rows.Close()
 
 	for R.Rows.Next() {
+		mCheckError(R.Rows.Scan(R.Dest...))
 		resultStr, err := mType.GetRowResultFace(R)
 		if err != nil {
 			return nil, err
@@ -292,6 +320,16 @@ func (s *Searcher) GetFace(mType *AllRows, sqlLine string,
 
 	mCheckError(R.Rows.Err())
 	return out, nil
+}
+
+func (s *Searcher) GetFaceFork(mType *AllRows, sqlLine string,
+	values ...[]interface{}) ([]map[string]interface{}, error) {
+
+	R, err := s._initGet(mType, nil, sqlLine, values...)
+	if err != nil {
+		return []map[string]interface{}{}, err
+	}
+	return s._GetFaceFork(mType, R)
 }
 
 func (s *Searcher) GetFaceOne(mType *AllRows, sqlLine string,
@@ -306,6 +344,7 @@ func (s *Searcher) GetFaceOne(mType *AllRows, sqlLine string,
 	defer R.Rows.Close()
 
 	for R.Rows.Next() {
+		mCheckError(R.Rows.Scan(R.Dest...))
 		out, err = mType.GetRowResultFace(R)
 		if err != nil {
 			return nil, err
@@ -374,4 +413,97 @@ func (s *Searcher) DoCommit(sql string, values_in ...[]interface{}) {
 	if err != nil {
 		log.Fatal(err)
 	}
+}
+
+func (s *Searcher) _GetFaceFork(mType *AllRows,
+	R *GetRowResultStr) ([]map[string]interface{}, error) {
+	defer R.Rows.Close()
+
+	CountFork := 4
+	var wg sync.WaitGroup
+
+	resCh := make(chan *EnvelopeRowResult, 2*CountFork)
+	sendCh := make([]chan *EnvelopeRowResult, CountFork)
+	for i := 0; i < CountFork; i++ {
+		sendCh[i] = make(chan *EnvelopeRowResult, 1)
+		go GetRowResultFaceRoutine(i, sendCh[i], resCh)
+	}
+
+	checkValue := &EnvelopeFull{
+		ResM: map[int]map[string]interface{}{},
+	}
+
+	wg.Add(1)
+
+	CheckCountFork := CountFork
+	go func() {
+		defer wg.Done()
+		for {
+			select {
+			case res := <-resCh:
+				if res.IsLast {
+					CheckCountFork--
+					if CheckCountFork == 0 {
+						return
+					}
+				} else if res.Err != nil {
+					checkValue.Err = res.Err
+					return
+				} else {
+					checkValue.ResM[res.N] = res.ResM
+				}
+			}
+		}
+	}()
+
+	N := -1
+	cycle := true
+	for cycle {
+
+		for i := 0; i < CountFork; i++ {
+
+			if !R.Rows.Next() {
+				cycle = false
+				break
+			}
+
+			N++
+
+			Dest, RawResult := R.PrepareDestFun()
+			mCheckError(R.Rows.Scan(Dest...))
+
+			E := EnvelopeRowResult{
+				aRows:     mType,
+				N:         N,
+				R:         R,
+				RawResult: RawResult,
+				IsLast:    false,
+			}
+
+			select {
+			case sendCh[0] <- &E:
+			case sendCh[1] <- &E:
+			case sendCh[2] <- &E:
+			case sendCh[3] <- &E:
+			}
+		}
+	}
+
+	out := []map[string]interface{}{}
+
+	for i := 0; i < CountFork; i++ {
+		close(sendCh[i])
+	}
+	wg.Wait()
+	if checkValue.Err != nil {
+		return out, checkValue.Err
+	}
+	close(resCh)
+
+	for i := 0; i < len(checkValue.ResM); i++ {
+		out = append(out, checkValue.ResM[i])
+	}
+
+	mCheckError(R.Rows.Err())
+	return out, nil
 }

@@ -13,6 +13,7 @@ func Test_Fork(t *testing.T) {
 		_02_fork_test(t, s)
 		_03_fork_test(t, s)
 		_04_fork_test(t, s)
+		_05_fork_test(t, s)
 		_21_fork_test(t, s)
 		_22_fork_test(t, s)
 		_23_fork_test(t, s)
@@ -20,6 +21,25 @@ func Test_Fork(t *testing.T) {
 		_25_fork_test(t, s)
 	}
 	//t.Fatal("Success [no error] test")
+}
+
+func check_face(t *testing.T, face map[string]interface{}, line string) {
+	if _AnyToString(face["col2"]) != "9223372036854775807" {
+		t.Fatalf("%s\n", line)
+	}
+}
+
+func check_face_json(t *testing.T, face map[string]interface{}, line string) {
+
+	switch face["col2"].(type) {
+	case map[string]interface{}:
+		r := face["col2"].(map[string]interface{})
+		if _AnyToString(r["mail"]) != "weq" {
+			t.Fatalf("%s\n", line)
+		}
+	default:
+		t.Fatalf("Bad type: %T\n", face["col2"])
+	}
 }
 
 func main_fork_test_table(s *Searcher, count int) {
@@ -71,25 +91,22 @@ func main_fork_json_test_table(s *Searcher, count int) {
 	make_t_table(s, sql_create, sql_cols, sql_vals)
 }
 
-/*
-	int32 test
-*/
 type fork_01_TestPlace struct {
-	Col1  int32 `db:"col1" type:"int"`
-	Col2  int32 `db:"col2" type:"bigint"`
-	Col3  int32 `db:"col3" type:"smallint"`
-	Col4  int32 `db:"col4" type:"integer"`
-	Col5  int32 `db:"col5" type:"serial"`
-	Col6  int32 `db:"col6" type:"bigserial"`
-	Col7  int32 `db:"col7" type:"text"`
-	Col8  int32 `db:"col8" type:"varchar"`
-	Col9  int32 `db:"col9" type:"char"`
-	Col11 int32 `db:"col11" type:"real"`
-	Col12 int32 `db:"col12" type:"double"`
-	Col13 int32 `db:"col13" type:"numeric"`
-	Col14 int32 `db:"col14" type:"decimal"`
-	Col15 int32 `db:"col15" type:"money"`
-	Col16 int32 `db:"col16" type:"bool"`
+	Col1  int64 `db:"col1" type:"int"`
+	Col2  int64 `db:"col2" type:"bigint"`
+	Col3  int64 `db:"col3" type:"smallint"`
+	Col4  int64 `db:"col4" type:"integer"`
+	Col5  int64 `db:"col5" type:"serial"`
+	Col6  int64 `db:"col6" type:"bigserial"`
+	Col7  int64 `db:"col7" type:"text"`
+	Col8  int64 `db:"col8" type:"varchar"`
+	Col9  int64 `db:"col9" type:"char"`
+	Col11 int64 `db:"col11" type:"real"`
+	Col12 int64 `db:"col12" type:"double"`
+	Col13 int64 `db:"col13" type:"numeric"`
+	Col14 int64 `db:"col14" type:"decimal"`
+	Col15 int64 `db:"col15" type:"money"`
+	Col16 int64 `db:"col16" type:"bool"`
 }
 
 var fork_01_mTestType *AllRows = &AllRows{
@@ -101,6 +118,12 @@ func _01_fork_test(t *testing.T, s *Searcher) {
 	main_fork_test_table(s, 10)
 	p := []fork_01_TestPlace{}
 	s.GetFork(fork_01_mTestType, &p, "SELECT * FROM public.test ORDER BY 1")
+
+	face, err := s.GetFaceFork(fork_01_mTestType, "SELECT * FROM public.test ORDER BY 1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	check_face(t, face[0], "_01_fork_test")
 }
 
 func _02_fork_test(t *testing.T, s *Searcher) {
@@ -108,6 +131,13 @@ func _02_fork_test(t *testing.T, s *Searcher) {
 	main_fork_test_table(s, 10)
 	p := []fork_01_TestPlace{}
 	s.GetFork(fork_01_mTestType, &p, "SELECT * FROM public.test ORDER BY 1")
+
+	face, err := s.GetFaceFork(fork_01_mTestType, "SELECT * FROM public.test ORDER BY 1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	check_face(t, face[0], "_02_fork_test")
+
 }
 
 func _03_fork_test(t *testing.T, s *Searcher) {
@@ -115,6 +145,13 @@ func _03_fork_test(t *testing.T, s *Searcher) {
 	main_fork_test_table(s, 10)
 	p := []fork_01_TestPlace{}
 	s.Get(fork_01_mTestType, &p, "SELECT * FROM public.test ORDER BY 1")
+
+	face, err := s.GetFace(fork_01_mTestType, "SELECT * FROM public.test ORDER BY 1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	check_face(t, face[0], "_03_fork_test")
+
 }
 
 func _04_fork_test(t *testing.T, s *Searcher) {
@@ -122,11 +159,32 @@ func _04_fork_test(t *testing.T, s *Searcher) {
 	main_fork_test_table(s, 10)
 	p := []fork_01_TestPlace{}
 	s.Get(fork_01_mTestType, &p, "SELECT * FROM public.test ORDER BY 1")
+
+	face, err := s.GetFace(fork_01_mTestType, "SELECT * FROM public.test ORDER BY 1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	check_face(t, face[0], "_04_fork_test")
+
+}
+
+func _05_fork_test(t *testing.T, s *Searcher) {
+	runtime.GOMAXPROCS(8)
+	main_fork_test_table(s, 10)
+	p := []fork_01_TestPlace{}
+	s.GetNoFork(fork_01_mTestType, &p, "SELECT * FROM public.test ORDER BY 1")
+
+	face, err := s.GetFaceNoFork(fork_01_mTestType, "SELECT * FROM public.test ORDER BY 1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	check_face(t, face[0], "_05_fork_test")
+
 }
 
 /*----------------------------------------------------------------------------*/
 /*
-	int32 test
+	int64 test
 */
 type fork_05_TestPlace struct {
 	Col1 int                    `db:"col1" type:"serial"`
@@ -145,6 +203,12 @@ func _21_fork_test(t *testing.T, s *Searcher) {
 	main_fork_json_test_table(s, 10)
 	p := []fork_05_TestPlace{}
 	s.GetFork(fork_05_mTestType, &p, "SELECT * FROM public.test ORDER BY 1")
+
+	face, err := s.GetFaceFork(fork_05_mTestType, "SELECT * FROM public.test ORDER BY 1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	check_face_json(t, face[0], "_21_fork_test")
 }
 
 func _22_fork_test(t *testing.T, s *Searcher) {
@@ -152,6 +216,12 @@ func _22_fork_test(t *testing.T, s *Searcher) {
 	main_fork_json_test_table(s, 10)
 	p := []fork_05_TestPlace{}
 	s.GetFork(fork_05_mTestType, &p, "SELECT * FROM public.test ORDER BY 1")
+
+	face, err := s.GetFaceFork(fork_05_mTestType, "SELECT * FROM public.test ORDER BY 1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	check_face_json(t, face[0], "_22_fork_test")
 }
 
 func _23_fork_test(t *testing.T, s *Searcher) {
@@ -159,6 +229,12 @@ func _23_fork_test(t *testing.T, s *Searcher) {
 	main_fork_json_test_table(s, 10)
 	p := []fork_05_TestPlace{}
 	s.Get(fork_05_mTestType, &p, "SELECT * FROM public.test ORDER BY 1")
+
+	face, err := s.GetFace(fork_05_mTestType, "SELECT * FROM public.test ORDER BY 1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	check_face_json(t, face[0], "_23_fork_test")
 }
 
 func _24_fork_test(t *testing.T, s *Searcher) {
@@ -166,6 +242,12 @@ func _24_fork_test(t *testing.T, s *Searcher) {
 	main_fork_json_test_table(s, 10)
 	p := []fork_05_TestPlace{}
 	s.Get(fork_05_mTestType, &p, "SELECT * FROM public.test ORDER BY 1")
+
+	face, err := s.GetFace(fork_05_mTestType, "SELECT * FROM public.test ORDER BY 1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	check_face_json(t, face[0], "_24_fork_test")
 }
 
 func _25_fork_test(t *testing.T, s *Searcher) {
@@ -173,4 +255,10 @@ func _25_fork_test(t *testing.T, s *Searcher) {
 	main_fork_json_test_table(s, 10)
 	p := []fork_05_TestPlace{}
 	s.GetNoFork(fork_05_mTestType, &p, "SELECT * FROM public.test ORDER BY 1")
+
+	face, err := s.GetFaceNoFork(fork_05_mTestType, "SELECT * FROM public.test ORDER BY 1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	check_face_json(t, face[0], "_25_fork_test")
 }

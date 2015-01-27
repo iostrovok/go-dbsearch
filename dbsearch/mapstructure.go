@@ -121,8 +121,6 @@ func (s *Searcher) _initGet(aRows *AllRows, p interface{}, sqlLine string,
 
 func (aRows *AllRows) GetRowResultFace(R *GetRowResultStr) (map[string]interface{}, error) {
 
-	mCheckError(R.Rows.Scan(R.Dest...))
-
 	val := reflect.Indirect(reflect.New(aRows.SType).Elem())
 	out := map[string]interface{}{}
 	for i, raw := range R.RawResult {
@@ -156,7 +154,38 @@ func (aRows *AllRows) GetRowResultFace(R *GetRowResultStr) (map[string]interface
 	return out, nil
 }
 
-//func GetRowResultRoutine(Point int, dataCh <-chan *EnvelopeRowResult, resCh chan *EnvelopeRowResult) {
+func GetRowResultFaceRoutine(Point int, dataCh, resCh chan *EnvelopeRowResult) {
+
+	lastE := &EnvelopeRowResult{Point: Point, IsLast: true}
+	can_run := true
+	for can_run {
+		var E *EnvelopeRowResult
+		select {
+		case E, can_run = <-dataCh:
+			if can_run {
+				E.R.RawResult = E.RawResult
+				log.Printf("GetRowResultFaceRoutine: %#v\n", E.R)
+				resultStr, err := E.aRows.GetRowResultFace(E.R)
+				if err != nil {
+					E.Err = err
+				} else {
+					E.ResM = resultStr
+				}
+			} else {
+				E = lastE
+			}
+		}
+		select {
+		case resCh <- E:
+		}
+		if !can_run {
+			return
+		}
+	}
+
+	resCh <- lastE
+}
+
 func GetRowResultRoutine(Point int, dataCh, resCh chan *EnvelopeRowResult) {
 
 	lastE := &EnvelopeRowResult{Point: Point, IsLast: true}
@@ -173,8 +202,11 @@ func GetRowResultRoutine(Point int, dataCh, resCh chan *EnvelopeRowResult) {
 					}
 				}
 				resultStr := reflect.New(E.aRows.SType).Interface()
-				mCheckError(convert(E.aRows.List, "", resultDB, resultStr))
-				E.Res = resultStr
+				if err := convert(E.aRows.List, "", resultDB, resultStr); err != nil {
+					E.Err = err
+				} else {
+					E.Res = resultStr
+				}
 			} else {
 				E = lastE
 			}
@@ -191,8 +223,6 @@ func GetRowResultRoutine(Point int, dataCh, resCh chan *EnvelopeRowResult) {
 }
 
 func (aRows *AllRows) GetRowResult(R *GetRowResultStr) interface{} {
-
-	mCheckError(R.Rows.Scan(R.Dest...))
 
 	resultDB := map[string]interface{}{}
 	for i, raw := range R.RawResult {
