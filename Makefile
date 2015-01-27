@@ -81,8 +81,8 @@ test-l:
 	echo "test-l"
 	go test ./dbsearch/all_rows.go ./dbsearch/convert_array_func.go ./dbsearch/result.go ./dbsearch/field.go ./dbsearch/convert_func.go ./dbsearch/mapstructure.go ./dbsearch/dbsearch.go ./dbsearch/autoload_test.go ./dbsearch/dbsearch_test.go
 
-test-c:
-	echo "test-c"
+test-ex:
+	echo "test-ex"
 	go test ./dbsearch/all_rows.go ./dbsearch/convert_array_func.go ./dbsearch/result.go ./dbsearch/field.go ./dbsearch/convert_func.go ./dbsearch/mapstructure.go ./dbsearch/dbsearch.go ./dbsearch/exception_test.go ./dbsearch/dbsearch_test.go
 
 test-e:
@@ -93,7 +93,7 @@ test-i:
 	echo "test-i"
 	go test ./dbsearch/all_rows.go ./dbsearch/convert_array_func.go ./dbsearch/result.go ./dbsearch/field.go ./dbsearch/convert_func.go ./dbsearch/mapstructure.go ./dbsearch/dbsearch.go ./dbsearch/interface_test.go ./dbsearch/dbsearch_test.go
 
-test-m: test-fork test-o test-l test-a test-s test-f test-d test-e test-i test-c
+test-m: test-fork test-o test-l test-a test-s test-f test-d test-e test-i test-ex
 
 test-full:
 	echo "test-full"
