@@ -352,6 +352,25 @@ func (aRows *AllRows) convert_func_slice(oRow OneRow, fStrType, fieldName string
 	return fn, false, nil
 }
 
+func (aRows *AllRows) is_val_int(v reflect.Value, oRow OneRow, fStrType, fieldName string) error {
+	switch v.Kind() {
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		return nil
+	}
+
+	tab := ""
+	if aRows.TableInfo != nil {
+		tab = fmt.Sprintf("Table: %s.%s. ", aRows.Schema, aRows.Table)
+	}
+
+	info := fmt.Sprintf(tab+" Structure: %s. Field: %s [%s]. ",
+		aRows.SType, oRow.Name, oRow.FType)
+
+	err := fmt.Sprintf("Data from DB: %s, expected: %s.", v.Kind(), oRow.FType)
+
+	return fmt.Errorf("Error convert data. " + info + " " + err)
+}
+
 /* IS --NOT--- ARRAYS or SLICE */
 func (aRows *AllRows) convert_func_no_slice_int(oRow OneRow, fStrType, fieldName string,
 	fTType reflect.Type) (ConvertData, bool, error) {
@@ -366,7 +385,11 @@ func (aRows *AllRows) convert_func_no_slice_int(oRow OneRow, fStrType, fieldName
 		fn = func(data interface{}, field reflect.Value) error {
 			oRow.DebugV(fieldName, fTType, data)
 			if IsNotNilValue(data, field, fTType) {
-				field.SetInt(reflect.ValueOf(data).Int())
+				v := reflect.ValueOf(data)
+				if err := aRows.is_val_int(v, oRow, fStrType, fieldName); err != nil {
+					return err
+				}
+				field.SetInt(v.Int())
 			}
 			return nil
 		}
