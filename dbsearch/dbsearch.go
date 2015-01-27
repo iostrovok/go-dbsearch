@@ -191,7 +191,6 @@ func (s *Searcher) _GetFork(mType *AllRows, p interface{}, R *GetRowResultStr) e
 	CountFork := 4
 	var wg sync.WaitGroup
 
-	//dataCh := NewInDynChanBuffer()
 	resCh := make(chan *EnvelopeRowResult, 2*CountFork)
 	sendCh := make([]chan *EnvelopeRowResult, CountFork)
 	for i := 0; i < CountFork; i++ {
@@ -205,7 +204,7 @@ func (s *Searcher) _GetFork(mType *AllRows, p interface{}, R *GetRowResultStr) e
 
 	wg.Add(1)
 
-	CheckCountFork := 4
+	CheckCountFork := CountFork
 	go func() {
 		defer wg.Done()
 		for {
