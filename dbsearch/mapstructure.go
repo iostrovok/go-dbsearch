@@ -86,8 +86,7 @@ func (s *Searcher) _initGet(aRows *AllRows, p interface{}, sqlLine string,
 	}
 
 	if s.log {
-		log.Printf("dbsearch.Get: %s\n", sqlLine)
-		log.Printf("%v\n", values)
+		log.Printf("dbsearch.Get: %s\n%#v\n", sqlLine, values)
 	}
 
 	rows, err := s.db.Query(sqlLine, value...)
@@ -109,11 +108,10 @@ func (s *Searcher) _initGet(aRows *AllRows, p interface{}, sqlLine string,
 	R.Rows = rows
 
 	if s.log {
-		log.Printf("GetRowResultStr.Cols: %#v\n", R.Cols)
-		log.Printf("GetRowResultStr.Dest: %#v\n", R.Dest)
-		log.Printf("GetRowResultStr.RawResult: %#v\n", R.RawResult)
-		log.Printf("GetRowResultStr.Rows: %#v\n", R.Rows)
-		log.Printf("GetRowResultStr.SkipList: %#v\n", R.SkipList)
+		line := "GetRowResultStr.Cols: %#v\nGetRowResultStr.Dest: %#v\n" +
+			"GetRowResultStr.RawResult: %#v\nGetRowResultStr.Rows: %#v\n" +
+			"GetRowResultStr.SkipList: %#v\n"
+		log.Printf(line, R.Cols, R.Dest, R.RawResult, R.Rows, R.SkipList)
 	}
 
 	return R, nil
@@ -164,7 +162,6 @@ func GetRowResultFaceRoutine(Point int, dataCh, resCh chan *EnvelopeRowResult) {
 		case E, can_run = <-dataCh:
 			if can_run {
 				E.R.RawResult = E.RawResult
-				log.Printf("GetRowResultFaceRoutine: %#v\n", E.R)
 				resultStr, err := E.aRows.GetRowResultFace(E.R)
 				if err != nil {
 					E.Err = err
