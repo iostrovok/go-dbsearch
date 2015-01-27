@@ -18,6 +18,7 @@ type GetRowResultStr struct {
 }
 
 type EnvelopeRowResult struct {
+	Err       error
 	N         int
 	R         *GetRowResultStr
 	RawResult []interface{}
@@ -25,10 +26,13 @@ type EnvelopeRowResult struct {
 	IsLast    bool
 	Point     int
 	Res       interface{}
+	ResM      map[string]interface{}
 }
 
 type EnvelopeFull struct {
-	Res map[int]interface{}
+	Err  error
+	Res  map[int]interface{}
+	ResM map[int]map[string]interface{}
 }
 
 func (R *GetRowResultStr) PrepareDestFun() ([]interface{}, []interface{}) {
