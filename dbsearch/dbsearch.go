@@ -14,6 +14,9 @@ import (
 
 var m sync.Mutex
 
+/*
+Searcher is our main structure
+*/
 type Searcher struct {
 	db            *sql.DB
 	poolSize      int
@@ -24,17 +27,27 @@ type Searcher struct {
 	LastCols      []string
 }
 
+/*
+Close () closes db connect
+*/
 func (s *Searcher) Close() error {
 	return s.db.Close()
 }
 
+/*
+DBH -return db connect
+*/
 func (s *Searcher) DBH() *sql.DB {
 	return s.db
 }
 
-func (s *Searcher) SetDieOnColsName(is_debug ...bool) {
-	if len(is_debug) > 0 {
-		s.DieOnColsName = is_debug[0]
+/*
+SetDieOnColsName - to die or not to die when we have
+wrong column name or structure fields
+*/
+func (s *Searcher) SetDieOnColsName(isDie ...bool) {
+	if len(isDie) > 0 {
+		s.DieOnColsName = isDie[0]
 	} else {
 		s.DieOnColsName = true
 	}
@@ -56,10 +69,17 @@ func (s *Searcher) SetStrongDebug(is_debug ...bool) {
 	}
 }
 
+/*
+Ping permits to check connection.
+Wrapper around of db.Ping()
+*/
 func (s *Searcher) Ping() error {
 	return s.db.Ping()
 }
 
+/*
+SetDBI permits to create Searcher for existing *sql.DB connection.
+*/
 func SetDBI(db *sql.DB) (*Searcher, error) {
 
 	s := new(Searcher)
@@ -68,11 +88,16 @@ func SetDBI(db *sql.DB) (*Searcher, error) {
 	return s, nil
 }
 
-func (s *Searcher) StartReConnect(rto_in ...int) {
+/*
+StartReConnect starts monitoring of connection.
+It will try to reconnect if connection are broken.
+#TODO rewrite using standard reconnect
+*/
+func (s *Searcher) StartReConnect(rtoIn ...int) {
 
 	rto := 5
-	if len(rto_in) > 0 && rto_in[0] > 0 {
-		rto = rto_in[0]
+	if len(rtoIn) > 0 && rtoIn[0] > 0 {
+		rto = rtoIn[0]
 	}
 
 	go func() {
@@ -118,12 +143,22 @@ func DBI(poolSize int, dsn string, stopError ...bool) (*Searcher, error) {
 	return s, nil
 }
 
+/*
+GetCount returns values of first selected row.
+Select operator has to return only single integer column, example:
+"SELECT count(*) FROM persons"
+or
+"SELECT id FROM persons LIMIT 1"
+*/
 func (s *Searcher) GetCount(sqlLine string, values []interface{}) (int, error) {
 	var count int
 	err := s.db.QueryRow(sqlLine, values...).Scan(&count)
 	return count, err
 }
 
+/*
+GetOne returns first selected row in structure which has  passed in parameters.
+*/
 func (s *Searcher) GetOne(mType *AllRows, p interface{}, sqlLine string, values ...[]interface{}) error {
 
 	R, err := s._initGet(mType, p, sqlLine, values...)
@@ -142,6 +177,10 @@ func (s *Searcher) GetOne(mType *AllRows, p interface{}, sqlLine string, values 
 	return nil
 }
 
+/*
+Get returns all selected rows in slice of structures which has passed in parameters.
+*Searcher.Get select fork or non-fork way of selection.
+*/
 func (s *Searcher) Get(mType *AllRows, p interface{}, sqlLine string, values ...[]interface{}) error {
 
 	R, err := s._initGet(mType, p, sqlLine, values...)
@@ -155,6 +194,9 @@ func (s *Searcher) Get(mType *AllRows, p interface{}, sqlLine string, values ...
 	return s._GetNoFork(mType, p, R)
 }
 
+/*
+GetNoFork is similar of Get, but always selects non-fork way of selection.
+*/
 func (s *Searcher) GetNoFork(mType *AllRows, p interface{}, sqlLine string, values ...[]interface{}) error {
 
 	R, err := s._initGet(mType, p, sqlLine, values...)
@@ -179,7 +221,9 @@ func (s *Searcher) _GetNoFork(mType *AllRows, p interface{}, R *GetRowResultStr)
 	return nil
 }
 
-/* Force  */
+/*
+GetFork is similar of Get, but always selects fork way of selection.
+*/
 func (s *Searcher) GetFork(mType *AllRows, p interface{}, sqlLine string, values ...[]interface{}) error {
 
 	R, err := s._initGet(mType, p, sqlLine, values...)

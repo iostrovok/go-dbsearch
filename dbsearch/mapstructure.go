@@ -100,9 +100,9 @@ func (s *Searcher) _initGet(aRows *AllRows, p interface{}, sqlLine string,
 	}
 
 	s.LastCols = cols
-	R, err_rr := s.prepare_fork_raw_result(aRows, cols)
-	if err_rr != nil {
-		return nil, err_rr
+	R, errR := s.prepare_fork_raw_result(aRows, cols)
+	if errR != nil {
+		return nil, errR
 	}
 
 	R.Rows = rows
@@ -155,12 +155,12 @@ func (aRows *AllRows) GetRowResultFace(R *GetRowResultStr) (map[string]interface
 func GetRowResultFaceRoutine(Point int, dataCh, resCh chan *EnvelopeRowResult) {
 
 	lastE := &EnvelopeRowResult{Point: Point, IsLast: true}
-	can_run := true
-	for can_run {
+	canRun := true
+	for canRun {
 		var E *EnvelopeRowResult
 		select {
-		case E, can_run = <-dataCh:
-			if can_run {
+		case E, canRun = <-dataCh:
+			if canRun {
 				E.R.RawResult = E.RawResult
 				resultStr, err := E.aRows.GetRowResultFace(E.R)
 				if err != nil {
@@ -175,7 +175,7 @@ func GetRowResultFaceRoutine(Point int, dataCh, resCh chan *EnvelopeRowResult) {
 		select {
 		case resCh <- E:
 		}
-		if !can_run {
+		if !canRun {
 			return
 		}
 	}
@@ -186,12 +186,12 @@ func GetRowResultFaceRoutine(Point int, dataCh, resCh chan *EnvelopeRowResult) {
 func GetRowResultRoutine(Point int, dataCh, resCh chan *EnvelopeRowResult) {
 
 	lastE := &EnvelopeRowResult{Point: Point, IsLast: true}
-	can_run := true
-	for can_run {
+	canRun := true
+	for canRun {
 		var E *EnvelopeRowResult
 		select {
-		case E, can_run = <-dataCh:
-			if can_run {
+		case E, canRun = <-dataCh:
+			if canRun {
 				resultDB := map[string]interface{}{}
 				for i, raw := range E.RawResult {
 					if E.R.SkipList[i] {
@@ -211,7 +211,7 @@ func GetRowResultRoutine(Point int, dataCh, resCh chan *EnvelopeRowResult) {
 		select {
 		case resCh <- E:
 		}
-		if !can_run {
+		if !canRun {
 			return
 		}
 	}
@@ -244,7 +244,7 @@ func (s *Searcher) prepare_fork_raw_result(aRows *AllRows, cols []string) (*GetR
 		t, find := aRows.DBList[cols[i]]
 		if !find {
 			if s.DieOnColsName {
-				return nil, fmt.Errorf("dbsearch.Get not found column: %s!", cols[i])
+				return nil, fmt.Errorf("dbsearch.Get not found column: %s", cols[i])
 			}
 
 			SkipList[i] = false

@@ -8,22 +8,26 @@ import (
 	"runtime"
 )
 
-//
+// OneRow includes data about single field of structure
 type OneRow struct {
 	Count   int
 	DBName  string
 	FType   string
 	Name    string
-	SetFunc ConvertData
+	SetFunc convertData
 	Type    string
 	Log     bool
 }
 
+/*
+AllRows includes list of *OneRow
+	DBList is map[<column name in DB>]*OneRow
+	List   is map[<field name in structure>]*OneRow
+*/
 type AllRows struct {
 	TableInfo     *OneTableInfo
 	DBList        map[string]*OneRow
 	List          map[string]*OneRow
-	SkipList      map[int]bool
 	Done          bool
 	SType         reflect.Type
 	Table         string
@@ -32,17 +36,33 @@ type AllRows struct {
 	Log           int
 }
 
+/*
+PreInit is contains preprocessing of our structure, part 1.
+We can call method when we have "db" and "type"
+for each field in our structure
+*/
 func (aRows *AllRows) PreInit() {
 	if !aRows.Done {
 		m.Lock()
-		aRows.iPrepare()
+		aRows._iPrepare()
 		m.Unlock()
 	}
 }
 
+/*
+PreInit contains preprocessing of our structure, part 1.
+Part 2 is in aRows._iPrepare().
+Connect to db is necessary.
+*/
 func (s *Searcher) PreInit(aRows *AllRows, p ...interface{}) error {
 	if !aRows.Done {
 		m.Lock()
+
+		// Really rare case
+		if aRows.Done {
+			m.Unlock()
+			return nil
+		}
 
 		if s.logFull {
 			aRows.Log = 2
@@ -59,7 +79,8 @@ func (s *Searcher) PreInit(aRows *AllRows, p ...interface{}) error {
 				_, file1, line1, _ := runtime.Caller(2)
 				_, file2, line2, _ := runtime.Caller(3)
 				_, file3, line3, _ := runtime.Caller(4)
-				return fmt.Errorf("No defined field %s.SType in\n%s line %d\n%s line %d\n%s line %d\n", reflect.TypeOf(aRows),
+				return fmt.Errorf("No defined field %s.SType in\n%s line %d\n"+
+					"%s line %d\n%s line %d\n", reflect.TypeOf(aRows),
 					file1, line1, file2, line2, file3, line3)
 			}
 
@@ -78,7 +99,7 @@ func (s *Searcher) PreInit(aRows *AllRows, p ...interface{}) error {
 		}
 		aRows.DieOnColsName = s.DieOnColsName
 
-		if err := aRows.iPrepare(); err != nil {
+		if err := aRows._iPrepare(); err != nil {
 			return err
 		}
 		m.Unlock()
@@ -86,13 +107,22 @@ func (s *Searcher) PreInit(aRows *AllRows, p ...interface{}) error {
 	return nil
 }
 
-func (aRows *AllRows) iPrepare() error {
+/*
+	This method contains preprocessing of our structure, part 1.
+	Connect to db is not necessary.
+
+	AND
+	We can call method when we have "db" and "type"
+	for each field in our structure (from user or (s *Searcher) PreInit())
+*/
+func (aRows *AllRows) _iPrepare() error {
 
 	if aRows.SType == nil {
 		_, file1, line1, _ := runtime.Caller(2)
 		_, file2, line2, _ := runtime.Caller(3)
 		_, file3, line3, _ := runtime.Caller(4)
-		return fmt.Errorf("No defined field %s.SType in\n%s line %d\n%s line %d\n%s line %d\n", reflect.TypeOf(aRows),
+		return fmt.Errorf("No defined field %s.SType in\n%s line %d"+
+			"\n%s line %d\n%s line %d\n", reflect.TypeOf(aRows),
 			file1, line1, file2, line2, file3, line3)
 	}
 
@@ -101,7 +131,7 @@ func (aRows *AllRows) iPrepare() error {
 	aRows.Done = true
 	aRows.List = make(map[string]*OneRow, 0)
 	aRows.DBList = make(map[string]*OneRow, 0)
-	var err error = nil
+	var err error
 
 	Count := 0
 	for true {
@@ -111,70 +141,66 @@ func (aRows *AllRows) iPrepare() error {
 			break
 		}
 
-		fieldName := field.Name
-
-		fieldTypeType := field.Type
-		fieldTypeTypeStr := fmt.Sprintf("%s", fieldTypeType)
+		fName := field.Name
 
 		Count++
 
-		dbname := field.Tag.Get("db")
-		if dbname == "" {
-			if a, f := aRows.GetFieldInfo(fieldName); f {
-				dbname = a.Col
+		dbName := field.Tag.Get("db")
+		if dbName == "" {
+			if a, f := aRows.GetFieldInfo(fName); f {
+				dbName = a.Col
 			}
 		}
-		if dbname == "" {
+		if dbName == "" {
 			if aRows.DieOnColsName {
-				return errors.New(aRows.PanicInitMessage("field_name", fieldName, fieldTypeTypeStr))
-			} else {
-				if aRows.Log > 0 {
-					log.Printf("Warning for %s.%s. Not found field for '%s'\n", aRows.SType, fieldName, fieldTypeTypeStr)
-				}
-				continue
+				t := fmt.Sprintf("%s", field.Type)
+				return errors.New(aRows.panicInitMessage("field_name", fName, t))
+			}
+			if aRows.Log > 0 {
+				log.Printf("Warning for %s.%s. Not found field for '%s'\n",
+					aRows.SType, fName, field.Type)
+			}
+			continue
+		}
+
+		dbType := field.Tag.Get("type")
+		if dbType == "" {
+			if a, f := aRows.GetColInfo(dbName); f {
+				dbType = a.Type
 			}
 		}
 
-		dbtype := field.Tag.Get("type")
-		if dbtype == "" {
-			if a, f := aRows.GetColInfo(dbname); f {
-				dbtype = a.Type
-			}
-		}
-
-		if dbtype == "" {
+		if dbType == "" {
 			if aRows.DieOnColsName {
-				return errors.New(aRows.PanicInitMessage("db_type", fieldName, dbname))
-			} else {
-				if aRows.Log > 0 {
-					log.Printf("Warning for %s.%s. Not found 'db' tag for '%s'\n", aRows.SType, fieldName, fieldTypeTypeStr)
-				}
-				continue
+				return errors.New(aRows.panicInitMessage("db_type", fName, dbName))
 			}
+
+			if aRows.Log > 0 {
+				log.Printf("Warning for %s.%s. Not found 'db' tag for '%s'\n",
+					aRows.SType, fName, field.Type)
+			}
+			continue
 		}
 
-		oRow := OneRow{
-			Name:   fieldName,
-			DBName: dbname,
-			Type:   dbtype,
+		/*
+			Makes OneRow for each field
+		*/
+		oRow := &OneRow{
+			Name:   fName,
+			DBName: dbName,
+			Type:   dbType,
 			Count:  Count,
 			FType:  field.Type.String(),
 		}
 
-		aRows.List[fieldName] = &oRow
-		aRows.DBList[dbname] = &oRow
+		aRows.List[fName] = oRow
+		aRows.DBList[dbName] = oRow
 
-		oRow.SetFunc, err = aRows.convert_select(oRow, fieldTypeTypeStr, fieldName, fieldTypeType)
+		oRow.SetFunc, err = aRows.convertSelect(*oRow, fName, field.Type)
 		if err != nil {
 			return err
 		}
 	}
 
 	return nil
-}
-
-func Prepare(s interface{}) *AllRows {
-	aRows := AllRows{}
-	aRows.iPrepare()
-	return &aRows
 }
