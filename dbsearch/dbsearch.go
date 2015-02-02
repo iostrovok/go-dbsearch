@@ -2,7 +2,6 @@ package dbsearch
 
 import (
 	"database/sql"
-	"errors"
 	"fmt"
 	"github.com/iostrovok/go-dbsearch/dbsearch/sqler"
 	_ "github.com/lib/pq"
@@ -94,17 +93,20 @@ func (s *Searcher) StartReConnect(rto_in ...int) {
 	}()
 }
 
-func DBI(poolSize int, dsn string, stop_error ...bool) (*Searcher, error) {
+/*
+DBI is just new
+*/
+func DBI(poolSize int, dsn string, stopError ...bool) (*Searcher, error) {
 
 	s := new(Searcher)
 
 	db, _ := sql.Open("postgres", dsn)
 
 	if err := db.Ping(); err != nil {
-		if len(stop_error) > 0 && stop_error[0] {
+		if len(stopError) > 0 && stopError[0] {
 			log.Fatalf("DB Error: %s\n", err)
 		}
-		return nil, errors.New(fmt.Sprintf("DB Error: %s\n", err))
+		return nil, fmt.Errorf("DB Error: %s\n", err)
 	}
 
 	s.db = db
