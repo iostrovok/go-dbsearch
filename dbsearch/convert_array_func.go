@@ -2,7 +2,6 @@ package dbsearch
 
 import (
 	"fmt"
-	"github.com/iostrovok/go-iutils/iutils"
 	"regexp"
 	"strconv"
 	"strings"
@@ -157,12 +156,12 @@ func parseIntArray(s interface{}) []int {
 func parseFloat64Array(s interface{}) []float64 {
 	out := []float64{}
 
-	str := strings.TrimSpace(iutils.AnyToString(s))
+	str := strings.TrimSpace(_AnyToString(s))
 	str = noNumberDots.ReplaceAllString(str, "")
 	list := noNumberDotsSplit.Split(str, -1)
 
 	for _, v := range list {
-		out = append(out, iutils.AnyToFloat64(v))
+		out = append(out, _AnyToFloat64(v))
 	}
 
 	return out
@@ -171,16 +170,17 @@ func parseFloat64Array(s interface{}) []float64 {
 func parseFloat32Array(s interface{}) []float32 {
 	out := []float32{}
 
-	str := strings.TrimSpace(iutils.AnyToString(s))
+	str := strings.TrimSpace(_AnyToString(s))
 	str = noNumberDots.ReplaceAllString(str, "")
 	list := noNumberDotsSplit.Split(str, -1)
 
 	for _, v := range list {
-		out = append(out, float32(iutils.AnyToFloat64(v)))
+		out = append(out, float32(_AnyToFloat64(v)))
 	}
 
 	return out
 }
+
 func parseArray(line string) []string {
 
 	out := []string{}
@@ -223,4 +223,49 @@ func parseArray(line string) []string {
 	}
 
 	return out
+}
+
+func _AnyToFloat64(s interface{}) float64 {
+	if s == nil {
+		return 0
+	}
+
+	switch s.(type) {
+	case string:
+		st := noNumberDots.ReplaceAllString(s.(string), "")
+		if st == "" {
+			return 0.0
+		}
+		i, err := strconv.ParseFloat(st, 64)
+		if err != nil {
+			return 0.0
+		}
+		return float64(i)
+
+	case []uint8:
+		return _AnyToFloat64(string(s.([]uint8)))
+	case int:
+		return float64(s.(int))
+	case int32:
+		return float64(s.(int32))
+	case int64:
+		return float64(s.(int64))
+	case *int32:
+		return float64(*s.(*int32))
+	case *int64:
+		return float64(*s.(*int64))
+	case *int:
+		return float64(*s.(*int))
+	case float32:
+		return float64(s.(float32))
+	case *float32:
+		return float64(*s.(*float32))
+	case *float64:
+		return *s.(*float64)
+	case float64:
+		return s.(float64)
+
+	default:
+	}
+	return 0.0
 }
