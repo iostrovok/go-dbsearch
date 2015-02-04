@@ -455,6 +455,11 @@ map, err := GetFaceOne(mType, "SELECT * FROM public.test")
 
 ```
 
+#### func (*Searcher) SetDieOnColsName ####
+#####func (s *Searcher) SetDieOnColsName(isDie ...bool)#####
+
+Sets to die or not to die when we have wrong column name or structure fields
+
 ### type AllRows ###
 
 ```go
