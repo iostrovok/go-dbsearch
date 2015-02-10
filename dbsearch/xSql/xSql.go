@@ -495,7 +495,17 @@ func Mark(field string, mark string, data ...interface{}) *One {
 		log.Fatalf("Mark. Not defined %s\n", mark)
 	}
 
-	In.Data = data
+	if len(data) > 1 {
+		In.Data = data
+	} else if len(data) == 1 {
+		switch data[0].(type) {
+		case interface{}:
+			In.Data = data
+		default:
+			In.Data = []interface{}{data[0]}
+		}
+	}
+
 	In.Field = field
 	In.Type = ""
 
