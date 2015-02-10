@@ -300,6 +300,18 @@ p := []Singer{}
 dbh.Get(mSinger, &p, "SELECT * FROM public.singer ORDER BY 1")
 
 ```
+### Skip columns ###
+In cases:
+
+1) We have to skip columns, because we don't want to use extra fields in our structure
+
+2) We get too more columns from select
+
+we need to use 
+
+```go
+dbh.SetDieOnColsName(false)
+```
 
 ### Read rows as []map[string]interface{} ###
 If we want to get row(s) as map[string]interface{} (or []map[string]interface{} for list of columns) we need to use GetFaceOne and GetFace function. 
@@ -442,6 +454,11 @@ slice, err := GetFace(mType, "SELECT * FROM public.test")
 map, err := GetFaceOne(mType, "SELECT * FROM public.test")
 
 ```
+
+#### func (*Searcher) SetDieOnColsName ####
+#####func (s *Searcher) SetDieOnColsName(isDie ...bool)#####
+
+Sets to die or not to die when we have wrong column name or structure fields
 
 ### type AllRows ###
 
