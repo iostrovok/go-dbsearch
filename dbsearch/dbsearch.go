@@ -53,17 +53,25 @@ func (s *Searcher) SetDieOnColsName(isDie ...bool) {
 	}
 }
 
-func (s *Searcher) SetDebug(is_debug ...bool) {
-	if len(is_debug) > 0 {
-		s.log = is_debug[0]
+/*
+SetDebug sets first level of debug
+#TODO Rewrite SetDebug & SetStrongDebug
+*/
+func (s *Searcher) SetDebug(isDebug ...bool) {
+	if len(isDebug) > 0 {
+		s.log = isDebug[0]
 	} else {
 		s.log = true
 	}
 }
 
-func (s *Searcher) SetStrongDebug(is_debug ...bool) {
-	if len(is_debug) > 0 {
-		s.logFull = is_debug[0]
+/*
+SetStrongDebug sets second level of debug
+#TODO Rewrite SetDebug & SetStrongDebug
+*/
+func (s *Searcher) SetStrongDebug(isDebug ...bool) {
+	if len(isDebug) > 0 {
+		s.logFull = isDebug[0]
 	} else {
 		s.logFull = true
 	}
@@ -434,6 +442,9 @@ func (s *Searcher) Update(table string, data_where, data_update map[string]inter
 	s.DoCommit(sql, values)
 }
 
+/*
+DoCommit makes sql operator as transaction.
+*/
 func (s *Searcher) DoCommit(sql string, values_in ...[]interface{}) {
 
 	values := []interface{}{}
