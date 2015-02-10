@@ -49,6 +49,7 @@ test-xsql-cover:
 	go tool cover -html=./tmp_fix.out -o xSql.html
 	rm ./tmp_fix.out ./tmp.out	
 
+test-xsql-m: test-xsql-update test-xsql-where test-xsql-delete test-xsql-insert test-xsql-select test-xsql-utils
 
 test-speed:
 	go test  -bench=".*" ./dbsearch/all_rows.go ./dbsearch/convert_array_func.go ./dbsearch/result.go ./dbsearch/field.go ./dbsearch/convert_func.go ./dbsearch/mapstructure.go ./dbsearch/dbsearch.go ./dbsearch/dbsearch_test.go ./dbsearch/speed_test.go 
