@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/iostrovok/go-iutils/iutils"
 	"log"
+	"reflect"
 	"strings"
 )
 
@@ -481,6 +482,27 @@ func (one *One) Mark(field string, mark string, data ...interface{}) *One {
 	return one.Append(Mark(field, mark, data...))
 }
 
+/*
+ToFace convert any data to []interface{}.
+TODO. Not converts [&,&,&...] (slice of refs)
+*/
+func ToFace(t interface{}) []interface{} {
+	out := []interface{}{}
+
+	switch reflect.TypeOf(t).Kind() {
+	case reflect.Slice:
+		s := reflect.ValueOf(t)
+		for i := 0; i < s.Len(); i++ {
+			out = append(out, s.Index(i).Interface())
+		}
+	case reflect.Ptr:
+		out = ToFace(reflect.Indirect(reflect.ValueOf(t)).Interface())
+	default:
+		out = append(out, t)
+	}
+	return out
+}
+
 func Mark(field string, mark string, data ...interface{}) *One {
 
 	if ViewDebug {
@@ -498,12 +520,7 @@ func Mark(field string, mark string, data ...interface{}) *One {
 	if len(data) > 1 {
 		In.Data = data
 	} else if len(data) == 1 {
-		switch data[0].(type) {
-		case interface{}:
-			In.Data = data
-		default:
-			In.Data = []interface{}{data[0]}
-		}
+		In.Data = ToFace(data[0])
 	}
 
 	In.Field = field
