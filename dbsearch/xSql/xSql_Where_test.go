@@ -6,6 +6,8 @@ import (
 
 func TestWhere(t *testing.T) {
 	_01_Test_Where(t)
+	_02_Test_Where(t)
+	_03_Test_Where(t)
 	//t.Fatal("test case")
 }
 
@@ -70,5 +72,29 @@ func _01_Test_Where(t *testing.T) {
 		check_result(t, sql, "f "+m+" ARRAY[ $1, $2 ]::int[]", values, 2)
 	}
 
+	//t.Fatal("error insert xSql: text view")
+}
+
+func _02_Test_Where(t *testing.T) {
+
+	sql := ""
+	values := []interface{}{}
+
+	/* check IN */
+	list := []int{1, 2, 3}
+	sql, values = Mark("t", "IN", &list).Comp()
+	check_result(t, sql, " t IN ( $1, $2, $3 ) ", values, 3)
+	//t.Fatal("error insert xSql: text view")
+}
+
+func _03_Test_Where(t *testing.T) {
+
+	sql := ""
+	values := []interface{}{}
+
+	/* check IN */
+	list := []string{"adsad", "asdasdas", "asdasdasd"}
+	sql, values = Mark("t", "IN", list).Comp()
+	check_result(t, sql, " t IN ( $1, $2, $3 ) ", values, 3)
 	//t.Fatal("error insert xSql: text view")
 }
