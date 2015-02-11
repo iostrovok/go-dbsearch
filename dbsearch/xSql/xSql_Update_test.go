@@ -7,6 +7,7 @@ import (
 func Test_Update(t *testing.T) {
 	_01_Test_Update(t)
 	_11_Test_Update(t)
+	_21_Test_Update(t)
 	//t.Fatal("test case")
 }
 
@@ -38,4 +39,15 @@ func _11_Test_Update(t *testing.T) {
 	check_sql := "UPDATE public.mytable SET a = $2, b = ARRAY[$3, $4, $5], c = '{}', e = $6" +
 		" WHERE (startdate < now() AND enddate > now() AND e <> $1) RETURNING *, b as d"
 	check_result(t, sql, check_sql, values, 6)
+}
+
+func _21_Test_Update(t *testing.T) {
+
+	update := Update("public.mytable").Append(Func("a = a + 1")).Func("b = b + 1")
+
+	update_where := NLogic("AND").Mark("a", "=", 1)
+	update.Where(update_where)
+	sql, values := update.Comp()
+	check_sql := " UPDATE public.mytable SET a = a + 1, b = b + 1 WHERE (  a = $1 ) "
+	check_result(t, sql, check_sql, values, 1)
 }

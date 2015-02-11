@@ -195,22 +195,27 @@ func (one *One) CompUpdate() (string, []interface{}) {
 				continue
 			}
 
-			tp := v.(*One).Marker
+			k := v.(*One)
 
-			if tp == "RET" {
-				sRet = append(sRet, v.(*One).Field)
+			if k.Marker == "RET" {
+				sRet = append(sRet, k.Field)
 				continue
 			}
 
-			if tp != "=" {
-				log.Fatalf("Comp. For update only \"=\" defined %v\n", v)
+			if k.Marker == "=" {
+				sql, vals := k.Comp(Point)
+				Point += len(vals)
+				sUp = append(sUp, sql)
+				values = append(values, vals...)
+				continue
 			}
 
-			sql, vals := v.(*One).Comp(Point)
-			Point += len(vals)
-			sUp = append(sUp, sql)
-			values = append(values, vals...)
+			if k.Type == "NoVals" && k.Marker == "" {
+				sUp = append(sUp, k.Field)
+				continue
+			}
 
+			log.Fatalf("Comp. For update only \"=\" defined %v [%s, %s]\n", v, k.Marker, k.Type)
 		default:
 			log.Fatalf("Comp. Not defined %T, %v\n", v, v)
 		}
