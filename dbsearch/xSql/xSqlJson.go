@@ -6,20 +6,21 @@ import (
 	"log"
 )
 
-func PrepareJsonVals(val []interface{}) []interface{} {
+func prepareJSONvals(val []interface{}) []interface{} {
 
 	if len(val) == 0 {
 		return []interface{}{""}
 	}
 
-	b, err_j := json.Marshal(val[0])
-	if err_j != nil {
-		log.Fatalf("PrepareJsonVals. Bad Json data: %s\n", err_j)
+	b, errJ := json.Marshal(val[0])
+	if errJ != nil {
+		log.Fatalf("prepareJSONvals. Bad Json data: %s\n", errJ)
 	}
 
 	return []interface{}{string(b)}
 }
 
+//Json adds json param
 func (one *One) Json(f ...interface{}) *One {
 
 	if len(f) == 0 {
@@ -35,10 +36,10 @@ func (one *One) Json(f ...interface{}) *One {
 	mark := iutils.AnyToString(f[1])
 	data := f[2:]
 
-	n_one := Mark(field, mark, data...)
-	n_one.Type = "JSON"
+	nOne := Mark(field, mark, data...)
+	nOne.Type = "JSON"
 
-	one.Append(n_one)
+	one.Append(nOne)
 
 	return one
 }

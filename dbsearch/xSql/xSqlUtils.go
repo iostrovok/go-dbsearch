@@ -9,6 +9,7 @@ var (
 	regQuote = regexp.MustCompile(`'`)
 )
 
+//Quote make "quoteing string" for sql request
 func Quote(val interface{}) string {
 
 	if val == nil {

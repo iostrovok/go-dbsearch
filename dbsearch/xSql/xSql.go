@@ -265,7 +265,7 @@ func (one *One) CompInsert() (string, []interface{}) {
 			}
 
 			if v.(*One).Type == "JSON" {
-				vals = PrepareJsonVals(vals)
+				vals = prepareJSONvals(vals)
 			}
 
 			if tp == "SQL" {
@@ -334,7 +334,7 @@ func (one *One) Comp(PointIn ...int) (string, []interface{}) {
 	case "Array":
 		return one.compArray(Point)
 	case "JSON":
-		one.Data = PrepareJsonVals(one.Data)
+		one.Data = prepareJSONvals(one.Data)
 	}
 
 	switch one.Marker {
