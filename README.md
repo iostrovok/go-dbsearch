@@ -613,3 +613,68 @@ values is
 	[]interface{}{"John", "Lennon", 40, 0}
 ```
 
+### Pass slice
+#### Example "Array" and "TArray"
+
+```go
+	// 1
+	sql, values = Array("col", " = ", 1, 2, 3).Comp()
+	
+	// 2
+	sql, values = TArray("int", "col", " = ", 1, 2, 3).Comp()
+```
+
+#### Result
+sql is
+```sql
+	-- 1
+	col = ARRAY[ $1, $2, $3 ]
+	
+	-- 2
+	col = ARRAY[ $1, $2 ]::int[]
+```
+values is
+```go
+	// 1, 2 
+	[]interface{}{1,2,3}
+```
+
+#### Example "IN"
+```go
+	// 1
+	list := []interface{}{"adsad", 2, "asdasdasd"}
+	sql, values := Mark("t", "IN", list).Comp()
+	
+	// 2
+	list := []interface{}{"adsad", 2, "asdasdasd"}
+	sql, values := Mark("t", "IN", &list).Comp()
+	
+	// 3
+	sql, values := Mark("t", "IN", "adsad", 2, "asdasdasd").Comp()
+	
+	// 4
+	list := []int{1, 2, 3}
+	sql, values := Mark("t", "IN", list).Comp()
+	
+	// 5
+	list := []int{1, 2, 3}
+	sql, values := Mark("t", "IN", &list).Comp()
+	
+	// 6
+	sql, values := Mark("t", "IN", 1, 2, 3).Comp()
+```
+
+#### Result
+sql is
+```sql
+	-- 1,2,3,4,5,6 
+	t IN ( $1, $2, $3 )
+```
+values is 
+```go
+	// 1,2,3
+	[]interface{}{"adsad", 2, "asdasdasd"}
+	// 4,5,6
+	[]interface{}{1, 2, 3}
+```
+
