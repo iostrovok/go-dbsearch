@@ -5,12 +5,12 @@ import (
 )
 
 func Test_Delete(t *testing.T) {
-	_01_Test_Delete(t)
+	_01TestDelete(t)
 
 	//t.Fatal("test case")
 }
 
-func _01_Test_Delete(t *testing.T) {
+func _01TestDelete(t *testing.T) {
 	sql, values := Delete("public.mytable").
 		Logic("AND").Mark("f_name", "=", "John").
 		Mark("l_name", "=", "Lennon").

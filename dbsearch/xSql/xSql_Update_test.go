@@ -5,13 +5,13 @@ import (
 )
 
 func Test_Update(t *testing.T) {
-	_01_Test_Update(t)
-	_11_Test_Update(t)
-	_21_Test_Update(t)
+	_01TestUpdate(t)
+	_11TestUpdate(t)
+	_21TestUpdate(t)
 	//t.Fatal("test case")
 }
 
-func _01_Test_Update(t *testing.T) {
+func _01TestUpdate(t *testing.T) {
 	where := Logic("AND").Mark("f_name", "=", "John").Mark("l_name", "=", "Lennon").
 		Mark("age", "<", 40)
 
@@ -24,7 +24,7 @@ func _01_Test_Update(t *testing.T) {
 	checkResult(t, sql, "UPDATE public.mytable SET sended = $4 WHERE (f_name = $1 AND l_name = $2 AND age < $3 )  RETURNING *, f_name as n, l_name as l", values, 4)
 }
 
-func _11_Test_Update(t *testing.T) {
+func _11TestUpdate(t *testing.T) {
 
 	js := map[string]interface{}{"a": 1, "b": "name"}
 
@@ -41,7 +41,7 @@ func _11_Test_Update(t *testing.T) {
 	checkResult(t, sql, check_sql, values, 6)
 }
 
-func _21_Test_Update(t *testing.T) {
+func _21TestUpdate(t *testing.T) {
 
 	update := Update("public.mytable").Append(Func("a = a + 1")).Func("b = b + 1")
 

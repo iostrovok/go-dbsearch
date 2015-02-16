@@ -6,11 +6,11 @@ import (
 )
 
 func Test_Quote(t *testing.T) {
-	_001_Test_Quote(t)
+	_001TestQuote(t)
 	//t.Fatal("test case")
 }
 
-func _001_Test_Quote(t *testing.T) {
+func _001TestQuote(t *testing.T) {
 	testSuite := map[interface{}]string{
 		"the molecule's structure": "'the molecule''s structure'",
 		" I'''am an actor.":        "' I''''''am an actor.'",

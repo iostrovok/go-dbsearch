@@ -5,18 +5,18 @@ import (
 )
 
 func TestWhere(t *testing.T) {
-	_01_Test_Where(t)
-	_02_Test_Where(t)
-	_03_Test_Where(t)
-	_04_Test_Where(t)
-	_05_Test_Where(t)
-	_30_Test_Where(t)
-	_31_Test_Where(t)
-	_32_Test_Where(t)
+	_01TestWhere(t)
+	_02TestWhere(t)
+	_03TestWhere(t)
+	_04TestWhere(t)
+	_05TestWhere(t)
+	_30TestWhere(t)
+	_31TestWhere(t)
+	_32TestWhere(t)
 	//t.Fatal("test case")
 }
 
-func _01_Test_Where(t *testing.T) {
+func _01TestWhere(t *testing.T) {
 
 	sql := ""
 	values := []interface{}{}
@@ -66,7 +66,7 @@ func _01_Test_Where(t *testing.T) {
 	//t.Fatal("error insert xSql: text view")
 }
 
-func _02_Test_Where(t *testing.T) {
+func _02TestWhere(t *testing.T) {
 
 	/* check IN */
 	list := []int{1, 2, 3}
@@ -75,7 +75,7 @@ func _02_Test_Where(t *testing.T) {
 	//t.Fatal("error insert xSql: text view")
 }
 
-func _03_Test_Where(t *testing.T) {
+func _03TestWhere(t *testing.T) {
 	/* check IN */
 	list := []string{"adsad", "asdasdas", "asdasdasd"}
 	sql, values := Mark("t", "IN", list).Comp()
@@ -83,7 +83,7 @@ func _03_Test_Where(t *testing.T) {
 	//t.Fatal("error insert xSql: text view")
 }
 
-func _04_Test_Where(t *testing.T) {
+func _04TestWhere(t *testing.T) {
 	/* check IN */
 	list := &[]interface{}{"adsad", 2, "asdasdasd"}
 	sql, values := Mark("t", "IN", list).Comp()
@@ -91,7 +91,7 @@ func _04_Test_Where(t *testing.T) {
 	//t.Fatal("error insert xSql: text view")
 }
 
-func _05_Test_Where(t *testing.T) {
+func _05TestWhere(t *testing.T) {
 	/* check IN */
 	list := []interface{}{"adsad", 2, "asdasdasd"}
 	sql, values := Mark("t", "IN", list).Comp()
@@ -99,7 +99,7 @@ func _05_Test_Where(t *testing.T) {
 	//t.Fatal("error insert xSql: text view")
 }
 
-func _30_Test_Where(t *testing.T) {
+func _30TestWhere(t *testing.T) {
 
 	/* check array */
 	array_marks := []string{
@@ -107,17 +107,17 @@ func _30_Test_Where(t *testing.T) {
 	}
 	for _, m := range array_marks {
 		sql, values := Array("f", m, 1, 2, 3).Comp()
-		checkResult(t, sql, "f "+m+" ARRAY[ $1, $2, $3 ]", values, 3, "_30_Test_Where. 1.")
+		checkResult(t, sql, "f "+m+" ARRAY[ $1, $2, $3 ]", values, 3, "_30TestWhere. 1.")
 	}
 
 	for _, m := range array_marks {
 		sql, values := TArray("int", "f", m, 1, 2, 3).Comp()
-		checkResult(t, sql, "f "+m+" ARRAY[ $1, $2, $3 ]::int[]", values, 3, "_30_Test_Where. 2.")
+		checkResult(t, sql, "f "+m+" ARRAY[ $1, $2, $3 ]::int[]", values, 3, "_30TestWhere. 2.")
 	}
 
 }
 
-func _31_Test_Where(t *testing.T) {
+func _31TestWhere(t *testing.T) {
 
 	list := []interface{}{"1", 2, "3"}
 	sql := ""
@@ -129,28 +129,28 @@ func _31_Test_Where(t *testing.T) {
 	}
 	for _, m := range array_marks {
 		sql, values = Array("f", m, list).Comp()
-		checkResult(t, sql, "f "+m+" ARRAY[ $1, $2, $3 ]", values, 3, "_31_Test_Where. 1. Array, Simple slice.")
+		checkResult(t, sql, "f "+m+" ARRAY[ $1, $2, $3 ]", values, 3, "_31TestWhere. 1. Array, Simple slice.")
 	}
 
 	for _, m := range array_marks {
 		sql, values = TArray("int", "f", m, list).Comp()
-		checkResult(t, sql, "f "+m+" ARRAY[ $1, $2, $3 ]::int[]", values, 3, "_31_Test_Where. 2. Array, Simple slice.")
+		checkResult(t, sql, "f "+m+" ARRAY[ $1, $2, $3 ]::int[]", values, 3, "_31TestWhere. 2. Array, Simple slice.")
 	}
 
 	for _, m := range array_marks {
 		sql, values = Array("f", m, &list).Comp()
-		checkResult(t, sql, "f "+m+" ARRAY[ $1, $2, $3 ]", values, 3, "_31_Test_Where. 3. Array, Ref slice.")
+		checkResult(t, sql, "f "+m+" ARRAY[ $1, $2, $3 ]", values, 3, "_31TestWhere. 3. Array, Ref slice.")
 	}
 
 	for _, m := range array_marks {
 		sql, values = TArray("int", "f", m, &list).Comp()
-		checkResult(t, sql, "f "+m+" ARRAY[ $1, $2, $3 ]::int[]", values, 3, "_31_Test_Where. 4. Array, Ref slice.")
+		checkResult(t, sql, "f "+m+" ARRAY[ $1, $2, $3 ]::int[]", values, 3, "_31TestWhere. 4. Array, Ref slice.")
 	}
 
 	//t.Fatal("error insert xSql: text view")
 }
 
-func _32_Test_Where(t *testing.T) {
+func _32TestWhere(t *testing.T) {
 
 	list := []int{1, 2, 3}
 	sql := ""
@@ -162,22 +162,22 @@ func _32_Test_Where(t *testing.T) {
 	}
 	for _, m := range array_marks {
 		sql, values = Array("f", m, list).Comp()
-		checkResult(t, sql, "f "+m+" ARRAY[ $1, $2, $3 ]", values, 3, "_32_Test_Where. 1.")
+		checkResult(t, sql, "f "+m+" ARRAY[ $1, $2, $3 ]", values, 3, "_32TestWhere. 1.")
 	}
 
 	for _, m := range array_marks {
 		sql, values = TArray("int", "f", m, list).Comp()
-		checkResult(t, sql, "f "+m+" ARRAY[ $1, $2, $3 ]::int[]", values, 3, "_32_Test_Where. 2.")
+		checkResult(t, sql, "f "+m+" ARRAY[ $1, $2, $3 ]::int[]", values, 3, "_32TestWhere. 2.")
 	}
 
 	for _, m := range array_marks {
 		sql, values = Array("f", m, &list).Comp()
-		checkResult(t, sql, "f "+m+" ARRAY[ $1, $2, $3 ]", values, 3, "_32_Test_Where. 3.")
+		checkResult(t, sql, "f "+m+" ARRAY[ $1, $2, $3 ]", values, 3, "_32TestWhere. 3.")
 	}
 
 	for _, m := range array_marks {
 		sql, values = TArray("int", "f", m, list).Comp()
-		checkResult(t, sql, "f "+m+" ARRAY[ $1, $2, $3 ]::int[]", values, 3, "_32_Test_Where. 4.")
+		checkResult(t, sql, "f "+m+" ARRAY[ $1, $2, $3 ]::int[]", values, 3, "_32TestWhere. 4.")
 	}
 
 	//t.Fatal("error insert xSql: text view")

@@ -5,17 +5,17 @@ import (
 )
 
 func Test(t *testing.T) {
-	_001_Test_Select(t)
-	_002_Test_Select(t)
-	_011_Test_Select(t)
-	_012_Test_Select(t)
-	_020_Test_Select(t)
-	_030_Test_Select(t)
+	_001TestSelect(t)
+	_002TestSelect(t)
+	_011TestSelect(t)
+	_012TestSelect(t)
+	_020TestSelect(t)
+	_030TestSelect(t)
 
 	//t.Fatal("test case")
 }
 
-func _001_Test_Select(t *testing.T) {
+func _001TestSelect(t *testing.T) {
 	/*  Simple condition 1 */
 	sql, values := Select("public.mytable", "*").
 		Mark("parents", "=", "papa").
@@ -23,13 +23,13 @@ func _001_Test_Select(t *testing.T) {
 	checkResult(t, sql, "SELECT * FROM public.mytable WHERE parents = $1", values, 1)
 }
 
-func _002_Test_Select(t *testing.T) {
+func _002TestSelect(t *testing.T) {
 	/*  Simple condition 2 */
 	sql, values := Select("public.mytable", "*").IN("parent", []interface{}{"mama", "papa"}).Comp()
 	checkResult(t, sql, "SELECT * FROM public.mytable WHERE parent IN ( $1, $2 ) ", values, 2)
 }
 
-func _011_Test_Select(t *testing.T) {
+func _011TestSelect(t *testing.T) {
 	/* Simple AND */
 	sql, values := Select("public.mytable", "*").
 		Logic("AND").
@@ -41,7 +41,7 @@ func _011_Test_Select(t *testing.T) {
 	checkResult(t, sql, "SELECT * FROM public.mytable WHERE (a = $1 AND b = $2 AND c = $3 AND d = $4)", values, 4)
 }
 
-func _012_Test_Select(t *testing.T) {
+func _012TestSelect(t *testing.T) {
 	/* Simple OR */
 	sql, values := Select("public.mytable", "*").
 		Logic("OR").
@@ -53,7 +53,7 @@ func _012_Test_Select(t *testing.T) {
 	checkResult(t, sql, "SELECT * FROM public.mytable WHERE (a = $1 OR b = $2 OR c = $3 OR d = $4)", values, 4)
 }
 
-func _020_Test_Select(t *testing.T) {
+func _020TestSelect(t *testing.T) {
 	/* Common test  */
 	res := "SELECT * FROM public.mytable WHERE (id > $1 AND f::json->10 LIKE '%cat%' AND f::json <> $2)"
 
@@ -66,7 +66,7 @@ func _020_Test_Select(t *testing.T) {
 	checkResult(t, sql, res, values, 2)
 }
 
-func _030_Test_Select(t *testing.T) {
+func _030TestSelect(t *testing.T) {
 	/* Combination "AND" and "OR" */
 	And := Logic("AND").Func("group ILIKE '%beatles%'")
 	Or1 := Logic("OR").Mark("f_name", "=", "Paul").Mark("f_name", "=", "John")
