@@ -253,7 +253,7 @@ func (one *One) CompInsert() (string, []interface{}) {
 			vals := v.(*One).Data
 
 			if v.(*One).Type == "Array" {
-				s, v := PrepareArray(v.(*One).AddParam, vals, Point)
+				s, v := prepareArray(v.(*One).AddParam, vals, Point)
 				sVals = append(sVals, s)
 				values = append(values, v...)
 				Point += len(v)
@@ -332,7 +332,7 @@ func (one *One) Comp(PointIn ...int) (string, []interface{}) {
 	case "NoVals":
 		return one.Field, values
 	case "Array":
-		return one.CompArray(Point)
+		return one.compArray(Point)
 	case "JSON":
 		one.Data = PrepareJsonVals(one.Data)
 	}

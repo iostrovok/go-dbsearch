@@ -7,6 +7,7 @@ import (
 	"strings"
 )
 
+//MarkArrayList contains actions which are available for array
 var MarkArrayList = map[string]bool{
 	"=":  true,
 	"<>": true,
@@ -20,7 +21,7 @@ var MarkArrayList = map[string]bool{
 	"||": true,
 }
 
-func (one *One) CompArray(PointIn ...int) (string, []interface{}) {
+func (one *One) compArray(PointIn ...int) (string, []interface{}) {
 
 	Point := 1
 	if len(PointIn) > 0 {
@@ -28,16 +29,16 @@ func (one *One) CompArray(PointIn ...int) (string, []interface{}) {
 	}
 
 	if one.Type != "Array" {
-		log.Fatalf("CompArray. It does not have array type: %v\n", one)
+		log.Fatalf("compArray. It does not have array type: %v\n", one)
 	}
 
-	sqlLine, values := PrepareArray(one.AddParam, one.Data, Point)
+	sqlLine, values := prepareArray(one.AddParam, one.Data, Point)
 	sqlLine = fmt.Sprintf(" %s %s %s ", one.Field, one.Marker, sqlLine)
 
 	return sqlLine, values
 }
 
-func PrepareArray(TypeArray string, val []interface{}, start_point int) (string, []interface{}) {
+func prepareArray(TypeArray string, val []interface{}, startPoint int) (string, []interface{}) {
 
 	if len(val) == 0 {
 		return " '{}'" + TypeArray + " ", []interface{}{}
@@ -46,30 +47,34 @@ func PrepareArray(TypeArray string, val []interface{}, start_point int) (string,
 	line := []string{}
 	values := []interface{}{}
 	for _, v := range val {
-		line = append(line, "$"+strconv.Itoa(start_point))
+		line = append(line, "$"+strconv.Itoa(startPoint))
 		values = append(values, v)
-		start_point++
+		startPoint++
 	}
 
 	return "ARRAY[ " + strings.Join(line, ", ") + " ]" + TypeArray, values
 }
 
-func (one *One) TArray(type_array string, field string, mark string, data ...interface{}) *One {
-	one.Append(TArray(type_array, field, mark, data...))
+//TArray provides actions for array with type
+func (one *One) TArray(typeArray string, field string, mark string, data ...interface{}) *One {
+	one.Append(TArray(typeArray, field, mark, data...))
 	return one
 }
 
-func TArray(type_array string, field string, mark string, data ...interface{}) *One {
+//TArray provides actions for array with type
+func TArray(typeArray string, field string, mark string, data ...interface{}) *One {
 	In := Array(field, mark, data...)
-	In.AddParam = "::" + type_array + "[]"
+	In.AddParam = "::" + typeArray + "[]"
 	return In
 }
 
+//Array provides actions for array without type
 func (one *One) Array(field string, mark string, data ...interface{}) *One {
 	one.Append(Array(field, mark, data...))
 	return one
 }
 
+//Array provides actions for array without type
 func Array(field string, mark string, data ...interface{}) *One {
 	In := One{}
 
