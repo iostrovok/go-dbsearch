@@ -614,6 +614,30 @@ values is
 ```
 
 ### Pass slice
+#### Example "Array" and "TArray"
+
+```go
+	// 1
+	sql, values = Array("col", " = ", 1, 2, 3).Comp()
+	
+	// 2
+	sql, values = TArray("int", "col", " = ", 1, 2, 3).Comp()
+```
+
+#### Result
+sql is
+```sql
+	-- 1
+	col = ARRAY[ $1, $2, $3 ]
+	
+	-- 2
+	col = ARRAY[ $1, $2 ]::int[]
+```
+values is
+```go
+	// 1, 2 
+	[]interface{}{1,2,3}
+```
 
 #### Example "IN"
 ```go
@@ -643,12 +667,14 @@ values is
 #### Result
 sql is
 ```sql
-	1,2,3,4,5,6) t IN ( $1, $2, $3 )
+	-- 1,2,3,4,5,6 
+	t IN ( $1, $2, $3 )
 ```
-
 values is 
 ```go
-	1,2,3) []interface{}{"adsad", 2, "asdasdasd"}
-	4,5,6) []interface{}{1, 2, 3}
+	// 1,2,3
+	[]interface{}{"adsad", 2, "asdasdasd"}
+	// 4,5,6
+	[]interface{}{1, 2, 3}
 ```
 
