@@ -79,7 +79,12 @@ func Array(field string, mark string, data ...interface{}) *One {
 		log.Fatalf("Array. Not defined %s\n", mark)
 	}
 
-	In.Data = data
+	if len(data) > 1 {
+		In.Data = data
+	} else if len(data) == 1 {
+		In.Data = ToFace(data[0])
+	}
+
 	In.Field = field
 	In.Type = "Array"
 
