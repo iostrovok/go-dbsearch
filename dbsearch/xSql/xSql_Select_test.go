@@ -20,13 +20,13 @@ func _001_Test_Select(t *testing.T) {
 	sql, values := Select("public.mytable", "*").
 		Mark("parents", "=", "papa").
 		Comp()
-	check_result(t, sql, "SELECT * FROM public.mytable WHERE parents = $1", values, 1)
+	checkResult(t, sql, "SELECT * FROM public.mytable WHERE parents = $1", values, 1)
 }
 
 func _002_Test_Select(t *testing.T) {
 	/*  Simple condition 2 */
 	sql, values := Select("public.mytable", "*").IN("parent", []interface{}{"mama", "papa"}).Comp()
-	check_result(t, sql, "SELECT * FROM public.mytable WHERE parent IN ( $1, $2 ) ", values, 2)
+	checkResult(t, sql, "SELECT * FROM public.mytable WHERE parent IN ( $1, $2 ) ", values, 2)
 }
 
 func _011_Test_Select(t *testing.T) {
@@ -38,7 +38,7 @@ func _011_Test_Select(t *testing.T) {
 		Mark("c", "=", 3).
 		Mark("d", "=", "cat").
 		Comp()
-	check_result(t, sql, "SELECT * FROM public.mytable WHERE (a = $1 AND b = $2 AND c = $3 AND d = $4)", values, 4)
+	checkResult(t, sql, "SELECT * FROM public.mytable WHERE (a = $1 AND b = $2 AND c = $3 AND d = $4)", values, 4)
 }
 
 func _012_Test_Select(t *testing.T) {
@@ -50,7 +50,7 @@ func _012_Test_Select(t *testing.T) {
 		Mark("c", "=", 3).
 		Mark("d", "=", "cat").
 		Comp()
-	check_result(t, sql, "SELECT * FROM public.mytable WHERE (a = $1 OR b = $2 OR c = $3 OR d = $4)", values, 4)
+	checkResult(t, sql, "SELECT * FROM public.mytable WHERE (a = $1 OR b = $2 OR c = $3 OR d = $4)", values, 4)
 }
 
 func _020_Test_Select(t *testing.T) {
@@ -63,7 +63,7 @@ func _020_Test_Select(t *testing.T) {
 		Func("f::json->10 LIKE '%cat%'").
 		Json("f::json", "<>", map[string]interface{}{"sss": 1}).
 		Comp()
-	check_result(t, sql, res, values, 2)
+	checkResult(t, sql, res, values, 2)
 }
 
 func _030_Test_Select(t *testing.T) {
@@ -78,6 +78,6 @@ func _030_Test_Select(t *testing.T) {
 
 	sql_full, values_2 := Select("public.mytable", "DOB").Append(And).Comp()
 
-	check_result(t, sql_where, "(group ILIKE '%beatles%' AND (f_name = $1 OR f_name = $2) AND (l_name = $3 OR l_name = $4))", values_1, 4)
-	check_result(t, sql_full, "SELECT DOB FROM public.mytable WHERE "+sql_where, values_2, 4)
+	checkResult(t, sql_where, "(group ILIKE '%beatles%' AND (f_name = $1 OR f_name = $2) AND (l_name = $3 OR l_name = $4))", values_1, 4)
+	checkResult(t, sql_full, "SELECT DOB FROM public.mytable WHERE "+sql_where, values_2, 4)
 }

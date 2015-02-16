@@ -18,5 +18,5 @@ func _01_Test_Delete(t *testing.T) {
 		Mark("age", ">", 0).
 		Comp()
 
-	check_result(t, sql, "DELETE FROM public.mytable WHERE (f_name = $1 AND l_name = $2 AND age < $3 AND age > $4)", values, 4)
+	checkResult(t, sql, "DELETE FROM public.mytable WHERE (f_name = $1 AND l_name = $2 AND age < $3 AND age > $4)", values, 4)
 }

@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-func check_result(t *testing.T, sql1 string, sql2 string, values []interface{}, count int, mess ...string) {
+func checkResult(t *testing.T, sql1 string, sql2 string, values []interface{}, count int, mess ...string) {
 
 	if len(mess) > 0 {
 		log.Printf("%s\n", mess[0])
