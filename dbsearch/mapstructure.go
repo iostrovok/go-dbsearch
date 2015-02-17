@@ -33,6 +33,10 @@ func convert(List map[string]*OneRow, name string, data interface{}, Result inte
 			return fmt.Errorf("No setup fieldName [%s]\n", fieldName)
 		}
 
+		if el.Skip {
+			continue
+		}
+
 		rawMapVal := dataVal.MapIndex(reflect.ValueOf(fieldName))
 		if val.Field(i).CanSet() && rawMapVal != reflect.Zero(reflect.TypeOf(rawMapVal)).Interface() {
 			if err := el.SetFunc(rawMapVal.Interface(), val.Field(i)); err != nil {

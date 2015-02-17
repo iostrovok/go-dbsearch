@@ -17,6 +17,7 @@ type OneRow struct {
 	SetFunc convertData
 	Type    string
 	Log     bool
+	Skip    bool
 }
 
 /*
@@ -145,43 +146,48 @@ func (aRows *AllRows) _iPrepare() error {
 
 		Count++
 
+		dbType := ""
+		isSkip := false
 		dbName := field.Tag.Get("db")
-		if dbName == "" {
-			if a, f := aRows.GetFieldInfo(fName); f {
-				dbName = a.Col
+		if dbName == "-" {
+			isSkip = true
+		} else {
+			if dbName == "" {
+				if a, f := aRows.GetFieldInfo(fName); f {
+					dbName = a.Col
+				}
 			}
-		}
-		if dbName == "" {
-			if aRows.DieOnColsName {
-				t := fmt.Sprintf("%s", field.Type)
-				return errors.New(aRows.panicInitMessage("field_name", fName, t))
-			}
-			if aRows.Log > 0 {
-				log.Printf("Warning for %s.%s. Not found field for '%s'\n",
-					aRows.SType, fName, field.Type)
-			}
-			continue
-		}
-
-		dbType := field.Tag.Get("type")
-		if dbType == "" {
-			if a, f := aRows.GetColInfo(dbName); f {
-				dbType = a.Type
-			}
-		}
-
-		if dbType == "" {
-			if aRows.DieOnColsName {
-				return errors.New(aRows.panicInitMessage("db_type", fName, dbName))
+			if dbName == "" {
+				if aRows.DieOnColsName {
+					t := fmt.Sprintf("%s", field.Type)
+					return errors.New(aRows.panicInitMessage("field_name", fName, t))
+				}
+				if aRows.Log > 0 {
+					log.Printf("Warning for %s.%s. Not found field for '%s'\n",
+						aRows.SType, fName, field.Type)
+				}
+				continue
 			}
 
-			if aRows.Log > 0 {
-				log.Printf("Warning for %s.%s. Not found 'db' tag for '%s'\n",
-					aRows.SType, fName, field.Type)
+			dbType = field.Tag.Get("type")
+			if dbType == "" {
+				if a, f := aRows.GetColInfo(dbName); f {
+					dbType = a.Type
+				}
 			}
-			continue
-		}
 
+			if dbType == "" {
+				if aRows.DieOnColsName {
+					return errors.New(aRows.panicInitMessage("db_type", fName, dbName))
+				}
+
+				if aRows.Log > 0 {
+					log.Printf("Warning for %s.%s. Not found 'db' tag for '%s'\n",
+						aRows.SType, fName, field.Type)
+				}
+				continue
+			}
+		}
 		/*
 			Makes OneRow for each field
 		*/
@@ -191,6 +197,7 @@ func (aRows *AllRows) _iPrepare() error {
 			Type:   dbType,
 			Count:  Count,
 			FType:  field.Type.String(),
+			Skip:   isSkip,
 		}
 
 		aRows.List[fName] = oRow
