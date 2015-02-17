@@ -58,8 +58,9 @@ func (aRows *AllRows) panicInitMessage(what, fieldName, Type string) string {
 
 func (aRows *AllRows) errorConvertMessage(fieldName string, Type string, fTType reflect.Type) error {
 	_, file, line, _ := runtime.Caller(3)
-	return fmt.Errorf("Error in %s line %d for %s.%s convert from '%s' to '%s'\n",
-		file, line, aRows.SType, fieldName, Type, fTType)
+	_, file0, line0, _ := runtime.Caller(2)
+	return fmt.Errorf("Error in %s line %d => in %s line %d for %s.%s convert from '%s' to '%s'\n",
+		file0, line0, file, line, aRows.SType, fieldName, Type, fTType)
 }
 
 /* Select function */
