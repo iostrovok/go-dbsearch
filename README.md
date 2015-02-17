@@ -363,6 +363,43 @@ if err != nil {
 
 ```
 
+If we use db & type tags we can write `db:"-"` for skipping the column.
+```go
+
+import "github.com/iostrovok/go-dbsearch/dbsearch"
+import "reflect"
+import "log"
+
+type Singer struct {
+	Id     int    `db:"id"  type:"int"`
+	Active bool   `db:"-"` // it will not be gotten from DB
+	Fname  string `db:"fname"  type:"text"`
+	Lname  string `db:"lname"  type:"text"`
+}
+
+var mSinger *dbsearch.AllRows = &dbsearch.AllRows{
+	SType: reflect.TypeOf(Singer{}), // necessary,
+}
+
+//...
+
+sql := "SELECT * FROM public.person WHERE fname IN( $1, $2) "
+values := []interface{}{"John", "Paul"}
+slice, err := dbh.GetFace(mSinger, sql, values)
+if err != nil {
+	log.Panicln(err)
+}
+
+// or
+
+sql := "SELECT * FROM public.person fname = $ LIMIT 1"
+values := []interface{}{"John", "Paul"}
+maps, err := dbh.GetFace(mSinger, sql, values)
+if err != nil {
+	log.Panicln(err)
+}
+	
+```
 ### JSON and ARRAY ###
 
 We can get json as map[string]interface{} and arrays from db.
