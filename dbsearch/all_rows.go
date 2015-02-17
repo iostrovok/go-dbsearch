@@ -203,9 +203,11 @@ func (aRows *AllRows) _iPrepare() error {
 		aRows.List[fName] = oRow
 		aRows.DBList[dbName] = oRow
 
-		oRow.SetFunc, err = aRows.convertSelect(*oRow, fName, field.Type)
-		if err != nil {
-			return err
+		if !isSkip {
+			oRow.SetFunc, err = aRows.convertSelect(*oRow, fName, field.Type)
+			if err != nil {
+				return err
+			}
 		}
 	}
 
