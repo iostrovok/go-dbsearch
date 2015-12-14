@@ -2,6 +2,7 @@ package dbsearch
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 	"github.com/iostrovok/go-dbsearch/dbsearch/sqler"
 	_ "github.com/lib/pq"
@@ -12,7 +13,10 @@ import (
 	"time"
 )
 
-var m sync.Mutex
+var (
+	m         sync.Mutex
+	NOT_FOUND = errors.New(`not found`)
+)
 
 /*
 Searcher is our main structure
@@ -173,16 +177,24 @@ func (s *Searcher) GetOne(mType *AllRows, p interface{}, sqlLine string, values 
 	if err != nil {
 		return err
 	}
+
+	find := false
+
 	defer R.Rows.Close()
 	for R.Rows.Next() {
 		mCheckError(R.Rows.Scan(R.Dest...))
 		resultStr := mType.GetRowResult(R)
 		reflect.Indirect(reflect.ValueOf(p)).Set(reflect.Indirect(reflect.ValueOf(resultStr)))
+		find = true
 		break
 	}
 
 	mCheckError(R.Rows.Err())
-	return nil
+	if find {
+		return nil
+	}
+
+	return NOT_FOUND
 }
 
 /*
